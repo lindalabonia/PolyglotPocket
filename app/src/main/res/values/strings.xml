@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">Polyglot Pocket</string>
+
+    <!-- Login -->
+    <string name="login_title">Polyglot Pocket</string>
+    <string name="login_subtitle">Impara i vocaboli, una flashcard alla volta</string>
+    <string name="login_username_hint">Nome utente</string>
+    <string name="login_password_hint">Password</string>
+    <string name="login_button">Accedi</string>
+    <string name="login_error_empty">Inserisci nome utente e password</string>
+
+    <!-- Home -->
+    <string name="home_welcome">Ciao, %1$s!</string>
+    <string name="home_train_random">Allenamento casuale</string>
+    <string name="home_train_errors">Impara dai tuoi errori</string>
+    <string name="home_study_here">Studia qui (GPS)</string>
+    <string name="home_add_photo">Aggiungi parola da foto</string>
+    <string name="home_stats">Statistiche</string>
+
+    <string name="coming_soon">Prossimamente</string>
+</resources>
