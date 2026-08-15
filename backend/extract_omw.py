@@ -14,6 +14,7 @@ Uso:
 """
 
 import wn
+from wordfreq import zipf_frequency
 
 # --- Configurazione -------------------------------------------------------
 # Hub inglese: fornisce concetti, ILI e temi (lexfile). L'inglese e' anche la
@@ -38,6 +39,14 @@ TARGET_LEXICONS = {
     # "arb": "omw-arb",   # l'arabo e' gia' dentro omw:1.4
 }
 
+# Filtro QUALITA': teniamo solo parole inglesi abbastanza comuni (scala Zipf di
+# wordfreq: ~1 raro, ~8 comunissimo). 3.0 scarta i termini tecnici/oscuri tipo
+# "Animalia" (1.71) ma tiene "pest" (3.64), "apple" (4.76), "dog" (5.10).
+MIN_ZIPF = 3.0
+
+# Codici lingua per wordfreq (per ordinare le traduzioni per frequenza).
+WF_LANG = {"eng": "en", "spa": "es", "fra": "fr", "por": "pt", "nld": "nl", "jpn": "ja"}
+
 # lexfile di WordNet -> tema dell'app (esportiamo solo questi).
 THEME_MAP = {
     "noun.food":       "cibo",
@@ -57,13 +66,41 @@ OUTPUT_FILE = "seed_cards.sql"
 # --------------------------------------------------------------------------
 
 
-def first_single(forms):
-    """Prima parola singola (no spazi, no simboli). isalpha() e' unicode-aware."""
+def single_words(forms):
+    """Solo parole singole (no spazi, no simboli). isalpha() e' unicode-aware."""
+    out = []
     for w in forms:
         w = (w or "").strip()
         if w and " " not in w and w.isalpha():
-            return w
-    return None
+            out.append(w)
+    return out
+
+
+def zipf_safe(word, wf_lang):
+    """Frequenza Zipf; None se la lingua non ha il tokenizer (es. ja senza MeCab)."""
+    try:
+        return zipf_frequency(word, wf_lang)
+    except Exception:
+        return None
+
+
+def best_source(forms):
+    """Parola inglese single-word piu' frequente e la sua frequenza Zipf."""
+    best, best_z = None, -1.0
+    for w in single_words(forms):
+        z = zipf_safe(w, "en") or 0.0
+        if z > best_z:
+            best, best_z = w, z
+    return best, best_z
+
+
+def best_target(forms, wf_lang):
+    """Traduzione single-word piu' frequente; se manca il tokenizer, la prima."""
+    cands = single_words(forms)
+    if not cands:
+        return None
+    ranked = sorted(((zipf_safe(w, wf_lang) or -1.0), w) for w in cands)
+    return ranked[-1][1]
 
 
 def main():
@@ -94,15 +131,16 @@ def main():
         if theme is None:
             continue
 
-        src = first_single(es.lemmas())
-        if not src:
+        src, src_z = best_source(es.lemmas())
+        if not src or src_z < MIN_ZIPF:      # scarta concetti con parola inglese rara/oscura
             continue
 
         for lang, lex_id in TARGET_LEXICONS.items():
-            translations = es.translate(lexicon=lex_id)
-            if not translations:
-                continue
-            tgt = first_single(translations[0].lemmas())
+            # raccogli i lemmi da TUTTI i synset tradotti, poi prendi il migliore
+            cand = []
+            for t in es.translate(lexicon=lex_id):
+                cand += t.lemmas()
+            tgt = best_target(cand, WF_LANG.get(lang, lang))
             if not tgt:
                 continue
 
