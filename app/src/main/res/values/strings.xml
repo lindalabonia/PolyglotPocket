@@ -16,6 +16,13 @@
     <string name="home_study_here">Studia qui (GPS)</string>
     <string name="home_add_photo">Aggiungi parola da foto</string>
     <string name="home_stats">Statistiche</string>
+    <string name="home_test_backend">Test backend (debug)</string>
+
+    <!-- Test backend -->
+    <string name="apitest_title">Test backend</string>
+    <string name="apitest_load_languages">Carica lingue (/languages)</string>
+    <string name="apitest_target_hint">Codice lingua (es. spa)</string>
+    <string name="apitest_load_card">Carica una carta (/cards)</string>
 
     <string name="coming_soon">Prossimamente</string>
 </resources>

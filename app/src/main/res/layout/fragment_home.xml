@@ -61,5 +61,13 @@
             android:padding="16dp"
             android:text="@string/home_stats" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/testBackendButton"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/home_test_backend" />
+
     </LinearLayout>
 </ScrollView>
