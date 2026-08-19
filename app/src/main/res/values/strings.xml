@@ -11,6 +11,8 @@
 
     <!-- Home -->
     <string name="home_welcome">Ciao, %1$s!</string>
+    <string name="home_target_lang_label">Lingua di studio</string>
+    <string name="home_select_language_title">Scegli la lingua da imparare</string>
     <string name="home_train_random">Allenamento casuale</string>
     <string name="home_train_errors">Impara dai tuoi errori</string>
     <string name="home_study_here">Studia qui (GPS)</string>
@@ -25,4 +27,18 @@
     <string name="apitest_load_card">Carica una carta (/cards)</string>
 
     <string name="coming_soon">Prossimamente</string>
+
+    <!-- Training (Allenamento) --> <!-- aggiunto per la fase di allenamento -->
+    <string name="training_title">Allenamento</string>
+    <string name="training_progress">Carta %1$d di %2$d</string>
+    <string name="training_input_hint">Scrivi la traduzione...</string>
+    <string name="training_btn_check">Verifica</string>
+    <string name="training_btn_next">Prossima carta</string>
+    <string name="training_btn_finish">Termina allenamento</string>
+    <string name="training_feedback_correct">Esatto! Bravissimo! 🎉</string>
+    <string name="training_feedback_wrong">Non è corretto. La risposta era: %1$s</string>
+    <string name="training_summary_title">Sessione completata!</string>
+    <string name="training_summary_result">Hai completato l\'allenamento:\n✅ Corrette: %1$d\n❌ Errori: %2$d</string>
+    <string name="training_back_to_home">Torna alla Home</string>
+
 </resources>

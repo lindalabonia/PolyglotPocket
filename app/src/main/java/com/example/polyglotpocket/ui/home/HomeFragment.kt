@@ -1,29 +1,36 @@
 package com.example.polyglotpocket.ui.home
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.core.content.edit
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.example.polyglotpocket.R
+import com.example.polyglotpocket.data.BackendApi
 import com.example.polyglotpocket.databinding.FragmentHomeBinding
+import kotlinx.coroutines.launch
 
-/**
- * Menu principale. Ogni pulsante corrisponde a una funzionalita' del progetto:
- *  - Allenamento casuale       -> Modalita' 1 (REQ. 7, 9, 10)
- *  - Impara dai tuoi errori    -> Modalita' 2
- *  - Studia qui (GPS)          -> REQ. 5 + REQ. 1 (OpenStreetMap)
- *  - Aggiungi parola da foto   -> REQ. 6 + REQ. 8 (Cloud Vision) + REQ. 1 (traduzione)
- *  - Statistiche               -> REQ. 3 (grafica 2D)
- *
- * Per ora le voci mostrano un placeholder: le colleghiamo una alla volta.
- */
 class HomeFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
+
+    // Mappa con bandiere e nomi leggibili per le lingue del backend
+    private val languageNames = mapOf(
+        "spa" to "🇪🇸 Spagnolo (spa)",
+        "fra" to "🇫🇷 Francese (fra)",
+        "por" to "🇵🇹 Portoghese (por)",
+        "nld" to "🇳🇱 Olandese (nld)",
+        "jpn" to "🇯🇵 Giapponese (jpn)",
+    )
+
+    private var selectedLanguageCode = "spa"
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -40,14 +47,64 @@ class HomeFragment : Fragment() {
         val username = arguments?.getString("username").orEmpty()
         binding.welcomeText.text = getString(R.string.home_welcome, username)
 
-        binding.trainRandomButton.setOnClickListener { comingSoon() }
-        binding.trainErrorsButton.setOnClickListener { comingSoon() }
+        // 1. Carica la lingua salvata in precedenza su disco (SharedPreferences)
+        val prefs = requireContext().getSharedPreferences("polyglot_prefs", Context.MODE_PRIVATE)
+        selectedLanguageCode = prefs.getString("target_lang", "spa") ?: "spa"
+        updateLanguageDisplay()
+
+        // 2. Click sul box della lingua per aprirne la selezione
+        binding.languageCard.setOnClickListener {
+            showLanguageSelectionDialog()
+        }
+
+        // 3. Click su Allenamento Casuale (modalità "random")
+        binding.trainRandomButton.setOnClickListener {
+            val bundle = bundleOf(
+                "targetLang" to selectedLanguageCode,
+                "mode" to "random"
+            )
+            findNavController().navigate(R.id.action_home_to_training, bundle)
+        }
+
+        // 4. Click su Impara dai tuoi errori (modalità "errors")
+        binding.trainErrorsButton.setOnClickListener {
+            val bundle = bundleOf(
+                "targetLang" to selectedLanguageCode,
+                "mode" to "errors"
+            )
+            findNavController().navigate(R.id.action_home_to_training, bundle)
+        }
         binding.studyHereButton.setOnClickListener { comingSoon() }
         binding.addPhotoButton.setOnClickListener { comingSoon() }
         binding.statsButton.setOnClickListener { comingSoon() }
         binding.testBackendButton.setOnClickListener {
             findNavController().navigate(R.id.action_home_to_apitest)
         }
+    }
+
+    private fun updateLanguageDisplay() {
+        binding.selectedLanguageText.text = languageNames[selectedLanguageCode] ?: selectedLanguageCode
+    }
+
+    private fun showLanguageSelectionDialog() {
+        val codes = languageNames.keys.toList()
+        val displayOptions = codes.map { languageNames[it] ?: it }.toTypedArray()
+        val currentIndex = codes.indexOf(selectedLanguageCode).coerceAtLeast(0)
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.home_select_language_title)
+            .setSingleChoiceItems(displayOptions, currentIndex) { dialog, which ->
+                selectedLanguageCode = codes[which]
+
+                // Salva la scelta su SharedPreferences
+                val prefs = requireContext().getSharedPreferences("polyglot_prefs", Context.MODE_PRIVATE)
+                prefs.edit { putString("target_lang", selectedLanguageCode) }
+
+                updateLanguageDisplay()
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun comingSoon() {
