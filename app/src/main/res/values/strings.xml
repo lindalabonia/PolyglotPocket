@@ -14,7 +14,6 @@
 
     <!-- Home -->
     <string name="home_title">Home</string>
-    <string name="home_stats">Statistiche</string>
     <string name="home_welcome">Hi, %1$s!</string>
     <string name="home_target_lang_label">Study language</string>
     <string name="home_select_language_title">Choose language</string>
@@ -30,8 +29,6 @@
     <string name="apitest_load_languages">Load languages (/languages)</string>
     <string name="apitest_target_hint">Language code (e.g. spa)</string>
     <string name="apitest_load_card">Load a card (/cards)</string>
-
-    <string name="coming_soon">Prossimamente</string>
 
     <!-- Training (Allenamento) --> <!-- aggiunto per la fase di allenamento -->
     <string name="training_title">Allenamento</string>
