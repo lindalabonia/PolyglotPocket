@@ -2,8 +2,6 @@ package com.example.polyglotpocket
 
 import android.os.Bundle
 import android.view.MenuItem
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
@@ -15,20 +13,9 @@ import androidx.navigation.navOptions
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
-import com.example.polyglotpocket.data.BackendApi
 import com.example.polyglotpocket.data.TokenStore
 import com.example.polyglotpocket.databinding.ActivityMainBinding
 import kotlinx.coroutines.launch
-
-private val LANG_NAMES = mapOf(
-    "spa" to "Spanish",
-    "fra" to "French",
-    "por" to "Portuguese",
-    "nld" to "Dutch",
-    "arb" to "Arabic",
-    "jpn" to "Japanese",
-    "eng" to "English",
-)
 
 class MainActivity : AppCompatActivity() {
 
@@ -65,10 +52,7 @@ class MainActivity : AppCompatActivity() {
         navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
 
     private fun onDrawerItem(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.menu_logout -> logout()
-            R.id.menu_change_language -> changeLanguage()
-        }
+        if (item.itemId == R.id.menu_logout) logout()
         binding.drawerLayout.closeDrawer(GravityCompat.START)
         return true
     }
@@ -83,37 +67,4 @@ class MainActivity : AppCompatActivity() {
             )
         }
     }
-
-    private fun changeLanguage() {
-        lifecycleScope.launch {
-            val token = TokenStore.get(this@MainActivity)
-            if (token == null) {
-                toast("You need to log in")
-                return@launch
-            }
-            val langs = try {
-                BackendApi.getLanguages()
-            } catch (e: Exception) {
-                toast("Error: ${e.message}")
-                return@launch
-            }
-            val names = langs.map { LANG_NAMES[it] ?: it }.toTypedArray()
-            AlertDialog.Builder(this@MainActivity)
-                .setTitle(R.string.menu_change_language)
-                .setItems(names) { _, which ->
-                    lifecycleScope.launch {
-                        try {
-                            BackendApi.setTargetLang(token, langs[which])
-                            toast("Language: ${names[which]}")
-                        } catch (e: Exception) {
-                            toast("Error: ${e.message}")
-                        }
-                    }
-                }
-                .show()
-        }
-    }
-
-    private fun toast(text: String) =
-        Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
 }

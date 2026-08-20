@@ -11,7 +11,6 @@ CREATE TABLE IF NOT EXISTS users (
     display_name  TEXT,
     auth_provider TEXT NOT NULL,               -- 'local' | 'google'
     native_lang   TEXT NOT NULL DEFAULT 'eng',
-    target_lang   TEXT,                        -- language being learned, NULL until picked
     created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -42,18 +41,16 @@ CREATE TABLE IF NOT EXISTS sessions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- One row per card shown: feeds the stats and the "review mistakes" mode.
-CREATE TABLE IF NOT EXISTS attempts (
+-- Errors to review. One row per (user, card): added when the answer is wrong,
+-- removed when the card is later answered correctly. Stats come from the
+-- sessions table, so only outstanding errors are kept here.
+CREATE TABLE IF NOT EXISTS errors (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id   INTEGER NOT NULL,
     user_id      INTEGER NOT NULL,
     card_id      INTEGER NOT NULL,
     answer_given TEXT,
-    is_correct   INTEGER NOT NULL,
-    similarity   REAL,
     shown_at     TEXT NOT NULL DEFAULT (datetime('now')),
-    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id)    REFERENCES users(id)    ON DELETE CASCADE,
-    FOREIGN KEY (card_id)    REFERENCES cards(id)
+    UNIQUE (user_id, card_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (card_id) REFERENCES cards(id)
 );
-CREATE INDEX IF NOT EXISTS idx_attempts_user_correct ON attempts (user_id, is_correct);

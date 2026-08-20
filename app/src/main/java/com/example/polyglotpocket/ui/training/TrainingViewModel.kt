@@ -1,13 +1,15 @@
 package com.example.polyglotpocket.ui.training
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.polyglotpocket.data.BackendApi
 import com.example.polyglotpocket.data.Card
 import com.example.polyglotpocket.data.AttemptRecord
 import com.example.polyglotpocket.data.SessionRecord
+import com.example.polyglotpocket.data.TokenStore
 import kotlinx.coroutines.launch
 
 /**
@@ -16,7 +18,7 @@ import kotlinx.coroutines.launch
  * - Mantiene lo stato (carta corrente, risposte giuste, errori)
  * - Verifica se la parola digitata dall'utente è corretta
  */
-class TrainingViewModel : ViewModel() {
+class TrainingViewModel(app: Application) : AndroidViewModel(app) {
 
     sealed interface State {
         data object Loading : State
@@ -53,6 +55,12 @@ class TrainingViewModel : ViewModel() {
     private var currentMode = "random"
     private var currentLang = "spa"
 
+    // Guards: whether a session was started (re-show the count dialog after a
+    // rotation only if not) and whether it already finished (single save).
+    var hasStarted = false
+        private set
+    private var finished = false
+
     /**
      * Scarica le carte dal backend e avvia la sessione.
      */
@@ -67,28 +75,35 @@ class TrainingViewModel : ViewModel() {
         correctCount = 0
         wrongCount = 0
         attempts.clear()
+        hasStarted = true
+        finished = false
         startTimeMs = System.currentTimeMillis()
 
         viewModelScope.launch {
             try {
-                // Se la modalità è "errors", scarichiamo solo gli errori passati
+                // Se la modalità è "errors", scarichiamo solo gli errori passati (serve il token)
                 cards = if (mode == "errors") {
-                    BackendApi.getErrorCards(userId = 1, targetLang = targetLang, n = numCards)
+                    val token = TokenStore.get(getApplication())
+                    if (token == null) {
+                        _state.value = State.Error("Session expired, please log in again.")
+                        return@launch
+                    }
+                    BackendApi.getErrorCards(token, targetLang, numCards)
                 } else {
                     BackendApi.getCards(targetLang, numCards)
                 }
 
                 if (cards.isEmpty()) {
                     if (mode == "errors") {
-                        _state.value = State.Error("Non ci sono errori registrati per questa lingua. Ottimo lavoro!")
+                        _state.value = State.Error("No mistakes recorded for this language. Great job!")
                     } else {
-                        _state.value = State.Error("Nessuna carta trovata per la lingua selezionata.")
+                        _state.value = State.Error("No cards found for the selected language.")
                     }
                 } else {
                     showCurrentCard(feedback = null)
                 }
             } catch (e: Exception) {
-                _state.value = State.Error("Errore nel caricamento: ${e.localizedMessage}")
+                _state.value = State.Error("Loading error: ${e.localizedMessage}")
             }
         }
     }
@@ -119,19 +134,22 @@ class TrainingViewModel : ViewModel() {
      * Passa alla carta successiva o conclude l'allenamento.
      */
     fun nextCard() {
+        if (finished) return  // ignore extra calls (button + gyroscope) after the last card
         currentIndex++
         if (currentIndex < cards.size) {
             showCurrentCard(feedback = null)
         } else {
+            finished = true
             // Calcoliamo la durata della sessione
             val durationMs = System.currentTimeMillis() - startTimeMs
 
             // Inviamo in background i risultati al server
             viewModelScope.launch {
                 try {
+                    val token = TokenStore.get(getApplication()) ?: return@launch
                     BackendApi.saveSession(
+                        token,
                         SessionRecord(
-                            userId = 1,
                             mode = currentMode,
                             targetLang = currentLang,
                             numCards = cards.size,

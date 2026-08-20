@@ -17,9 +17,17 @@ app = Flask(__name__)
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "polyglot.db")
 MAX_CARDS = 100
 
-# Signing key for the session tokens, read from the environment (set in the
-# WSGI file on PythonAnywhere). The fallback is only for local development.
-SECRET_KEY = os.environ.get("SECRET_KEY", "dev-insecure-change-me")
+# Signing key for the session tokens. Must be set in the environment (the WSGI
+# file on PythonAnywhere). A missing key is a hard error in production, never a
+# weak default; for local development set POLYGLOT_DEV=1 to allow an insecure key.
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    if os.environ.get("POLYGLOT_DEV") == "1":
+        SECRET_KEY = "dev-insecure-key"
+    else:
+        raise RuntimeError(
+            "SECRET_KEY is not set. Set it in the WSGI file, or POLYGLOT_DEV=1 for local dev."
+        )
 GOOGLE_WEB_CLIENT_ID = os.environ.get("GOOGLE_WEB_CLIENT_ID", "")
 TOKEN_TTL = timedelta(days=7)
 
@@ -154,7 +162,7 @@ def me():
     con = get_db()
     try:
         row = con.execute(
-            "SELECT id, username, email, display_name, native_lang, target_lang "
+            "SELECT id, username, email, display_name, native_lang "
             "FROM users WHERE id = ?",
             (uid,),
         ).fetchone()
@@ -163,26 +171,6 @@ def me():
     if row is None:
         return jsonify({"error": "unauthorized"}), 401
     return jsonify(dict(row))
-
-
-@app.put("/me/target-lang")
-def set_target_lang():
-    uid = uid_from_request()
-    if uid is None:
-        return jsonify({"error": "unauthorized"}), 401
-    data = request.get_json(silent=True) or {}
-    lang = (data.get("target_lang") or "").strip()
-
-    con = get_db()
-    try:
-        known = con.execute("SELECT 1 FROM cards WHERE target_lang = ? LIMIT 1", (lang,)).fetchone()
-        if known is None:
-            return jsonify({"error": "unknown language"}), 400
-        con.execute("UPDATE users SET target_lang = ? WHERE id = ?", (lang, uid))
-        con.commit()
-    finally:
-        con.close()
-    return jsonify({"target_lang": lang})
 
 
 # --- Read-only endpoints ------------------------------------------------
@@ -238,9 +226,11 @@ def cards():
 
 @app.get("/cards/errors")
 def cards_errors():
-    """Restituisce le carte il cui ULTIMO tentativo è ancora errato."""
-    user_id = uid_from_request() or int(request.args.get("user_id", 1))
-    target_lang = request.args.get("target_lang", "spa").strip()
+    """Random selection of the cards the user still has wrong (the errors queue)."""
+    uid = uid_from_request()
+    if uid is None:
+        return jsonify({"error": "unauthorized"}), 401
+    target_lang = request.args.get("target_lang", "").strip()
 
     try:
         n = int(request.args.get("n", 10))
@@ -254,19 +244,12 @@ def cards_errors():
             """
             SELECT c.id, c.word_source, c.word_target, c.theme
             FROM cards c
-            JOIN attempts a ON a.card_id = c.id
-            WHERE a.user_id = ?
-              AND c.target_lang = ?
-              AND a.id = (
-                  SELECT MAX(a2.id)
-                  FROM attempts a2
-                  WHERE a2.card_id = c.id AND a2.user_id = ?
-              )
-              AND a.is_correct = 0
-            ORDER BY a.shown_at DESC
+            JOIN errors a ON a.card_id = c.id
+            WHERE a.user_id = ? AND c.target_lang = ?
+            ORDER BY RANDOM()
             LIMIT ?
             """,
-            (user_id, target_lang, user_id, n),
+            (uid, target_lang, n),
         ).fetchall()
     finally:
         con.close()
@@ -276,45 +259,56 @@ def cards_errors():
 
 @app.post("/sessions")
 def save_session():
-    """Salva il resoconto di una sessione e i singoli tentativi/errori."""
-    data = request.get_json(silent=True) or {}
+    """Save the session summary and update the errors queue: a wrong card is
+    added, a correct card is removed."""
+    uid = uid_from_request()
+    if uid is None:
+        return jsonify({"error": "unauthorized"}), 401
 
-    user_id = uid_from_request() or int(data.get("user_id", 1))
+    data = request.get_json(silent=True) or {}
     mode = data.get("mode", "random")
     target_lang = data.get("target_lang", "spa")
-    num_cards = int(data.get("num_cards", 0))
-    num_correct = int(data.get("num_correct", 0))
-    num_wrong = int(data.get("num_wrong", 0))
-    duration_ms = int(data.get("duration_ms", 0))
+    try:
+        num_cards = int(data.get("num_cards", 0))
+        num_correct = int(data.get("num_correct", 0))
+        num_wrong = int(data.get("num_wrong", 0))
+        duration_ms = int(data.get("duration_ms", 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "invalid session data"}), 400
     attempts = data.get("attempts", [])
 
     con = get_db()
     try:
-        # Inserimento della sessione
         cur = con.execute(
             """
             INSERT INTO sessions (user_id, mode, target_lang, num_cards, num_correct, num_wrong, duration_ms)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (user_id, mode, target_lang, num_cards, num_correct, num_wrong, duration_ms),
+            (uid, mode, target_lang, num_cards, num_correct, num_wrong, duration_ms),
         )
         session_id = cur.lastrowid
 
-        # Inserimento dei singoli tentativi per tracciare errori e statistiche
         for att in attempts:
-            con.execute(
-                """
-                INSERT INTO attempts (session_id, user_id, card_id, answer_given, is_correct)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                (
-                    session_id,
-                    user_id,
-                    att["card_id"],
-                    att.get("answer_given", ""),
-                    1 if att.get("is_correct") else 0,
-                ),
-            )
+            card_id = att.get("card_id")
+            if card_id is None:
+                continue  # skip a malformed attempt instead of crashing
+            if att.get("is_correct"):
+                # Answered correctly: clear it from the errors queue.
+                con.execute(
+                    "DELETE FROM errors WHERE user_id = ? AND card_id = ?",
+                    (uid, card_id),
+                )
+            else:
+                # Wrong: add or refresh it in the errors queue (one row per card).
+                con.execute(
+                    """
+                    INSERT INTO errors (user_id, card_id, answer_given)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT (user_id, card_id)
+                    DO UPDATE SET answer_given = excluded.answer_given, shown_at = datetime('now')
+                    """,
+                    (uid, card_id, att.get("answer_given", "")),
+                )
 
         con.commit()
     finally:

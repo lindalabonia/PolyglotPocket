@@ -24,7 +24,6 @@ data class AttemptRecord(
 
 /** Il resoconto completo della sessione da inviare al server */
 data class SessionRecord(
-    val userId: Int = 1,
     val mode: String,
     val targetLang: String,
     val numCards: Int,
@@ -58,12 +57,6 @@ object BackendApi {
         parseAuth(post("/auth/google", body))
     }
 
-    suspend fun setTargetLang(token: String, targetLang: String) {
-        withContext(Dispatchers.IO) {
-            request("PUT", "/me/target-lang", JSONObject().put("target_lang", targetLang).toString(), token)
-        }
-    }
-
     // --- Lingue, Carte & Allenamento (Omar & Linda) ---
 
     suspend fun getLanguages(): List<String> = withContext(Dispatchers.IO) {
@@ -79,9 +72,9 @@ object BackendApi {
         }
     }
 
-    /** Scarica le carte su cui l'utente ha sbagliato in passato */
-    suspend fun getErrorCards(userId: Int = 1, targetLang: String, n: Int = 10): List<Card> = withContext(Dispatchers.IO) {
-        val arr = JSONArray(request("GET", "/cards/errors?user_id=$userId&target_lang=$targetLang&n=$n", null, null))
+    /** Scarica le carte su cui l'utente ha ancora sbagliato (coda errori). */
+    suspend fun getErrorCards(token: String, targetLang: String, n: Int = 10): List<Card> = withContext(Dispatchers.IO) {
+        val arr = JSONArray(request("GET", "/cards/errors?target_lang=$targetLang&n=$n", null, token))
         (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
             Card(o.getInt("id"), o.getString("word_source"), o.getString("word_target"), o.getString("theme"))
@@ -89,9 +82,8 @@ object BackendApi {
     }
 
     /** Invia al backend la sessione completata e i singoli tentativi */
-    suspend fun saveSession(session: SessionRecord): Boolean = withContext(Dispatchers.IO) {
+    suspend fun saveSession(token: String, session: SessionRecord): Boolean = withContext(Dispatchers.IO) {
         val json = JSONObject().apply {
-            put("user_id", session.userId)
             put("mode", session.mode)
             put("target_lang", session.targetLang)
             put("num_cards", session.numCards)
@@ -111,7 +103,7 @@ object BackendApi {
             put("attempts", attemptsArray)
         }
 
-        request("POST", "/sessions", json.toString(), null)
+        request("POST", "/sessions", json.toString(), token)
         true
     }
 

@@ -17,6 +17,8 @@
     <string name="home_welcome">Hi, %1$s!</string>
     <string name="home_target_lang_label">Study language</string>
     <string name="home_select_language_title">Choose language</string>
+    <string name="home_language_placeholder">Select a language</string>
+    <string name="home_select_language_first">Please select a language first</string>
     <string name="home_train_random">Random training</string>
     <string name="home_train_errors">Review your mistakes</string>
     <string name="home_study_here">Study here (GPS)</string>
@@ -30,21 +32,22 @@
     <string name="apitest_target_hint">Language code (e.g. spa)</string>
     <string name="apitest_load_card">Load a card (/cards)</string>
 
-    <!-- Training (Allenamento) --> <!-- aggiunto per la fase di allenamento -->
-    <string name="training_title">Allenamento</string>
-    <string name="training_progress">Carta %1$d di %2$d</string>
-    <string name="training_input_hint">Scrivi la traduzione...</string>
-    <string name="training_btn_check">Verifica</string>
-    <string name="training_btn_next">Prossima carta</string>
-    <string name="training_btn_finish">Termina allenamento</string>
-    <string name="training_feedback_correct">Esatto! Bravissimo! 🎉</string>
-    <string name="training_feedback_wrong">Non è corretto. La risposta era: %1$s</string>
-    <string name="training_summary_title">Sessione completata!</string>
-    <string name="training_summary_result">Hai completato l\'allenamento:\n✅ Corrette: %1$d\n❌ Errori: %2$d</string>
-    <string name="training_back_to_home">Torna alla Home</string>
+    <!-- Training -->
+    <string name="training_title">Training</string>
+    <string name="training_card_count_title">How many cards?</string>
+    <string name="training_card_count_option">%1$d cards</string>
+    <string name="training_progress">Card %1$d of %2$d</string>
+    <string name="training_input_hint">Type the translation...</string>
+    <string name="training_btn_check">Check</string>
+    <string name="training_btn_next">Next card</string>
+    <string name="training_btn_finish">Finish training</string>
+    <string name="training_feedback_correct">Correct! Well done! 🎉</string>
+    <string name="training_feedback_wrong">Not correct. The answer was: %1$s</string>
+    <string name="training_summary_title">Session complete!</string>
+    <string name="training_summary_result">You finished the training:\n✅ Correct: %1$d\n❌ Wrong: %2$d</string>
+    <string name="training_back_to_home">Back to Home</string>
 
     <!-- Side menu -->
-    <string name="menu_change_language">Change language</string>
     <string name="menu_logout">Log out</string>
 
     <string name="coming_soon">Coming soon</string>

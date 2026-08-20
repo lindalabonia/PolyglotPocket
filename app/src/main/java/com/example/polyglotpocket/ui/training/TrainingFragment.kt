@@ -78,13 +78,31 @@ class TrainingFragment : Fragment(), SensorEventListener {
             }
         }
 
-        // Leggiamo lingua e modalità passate dalla Home
+        // Language and mode passed from the Home screen.
         val targetLang = arguments?.getString("targetLang") ?: "spa"
         val mode = arguments?.getString("mode") ?: "random"
 
-        if (savedInstanceState == null) {
-            viewModel.startTraining(mode = mode, targetLang = targetLang, numCards = 10)
+        // Ask how many cards, then start. Survives rotation via the ViewModel:
+        // re-show the dialog only if a session hasn't started yet.
+        if (!viewModel.hasStarted) {
+            showCardCountDialog(mode, targetLang)
         }
+    }
+
+    /** Let the user pick the number of cards before the session starts. */
+    private fun showCardCountDialog(mode: String, targetLang: String) {
+        val counts = intArrayOf(2, 5, 10, 20)
+        val labels = counts.map { getString(R.string.training_card_count_option, it) }.toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.training_card_count_title)
+            .setItems(labels) { _, which ->
+                viewModel.startTraining(mode = mode, targetLang = targetLang, numCards = counts[which])
+            }
+            .setCancelable(false)
+            .setNegativeButton(R.string.training_back_to_home) { _, _ ->
+                findNavController().popBackStack()
+            }
+            .show()
     }
 
     private fun renderQuestion(state: TrainingViewModel.State.Question) {

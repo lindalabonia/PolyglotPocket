@@ -12,9 +12,7 @@ import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.example.polyglotpocket.R
-import com.example.polyglotpocket.data.BackendApi
 import com.example.polyglotpocket.databinding.FragmentHomeBinding
-import kotlinx.coroutines.launch
 
 /**
  * Main menu. Each button maps to a project feature:
@@ -31,16 +29,17 @@ class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
-    // Mappa con bandiere e nomi leggibili per le lingue del backend
+    // Flags and readable names for the languages available in the backend DB.
     private val languageNames = mapOf(
-        "spa" to "🇪🇸 Spagnolo (spa)",
-        "fra" to "🇫🇷 Francese (fra)",
-        "por" to "🇵🇹 Portoghese (por)",
-        "nld" to "🇳🇱 Olandese (nld)",
-        "jpn" to "🇯🇵 Giapponese (jpn)",
+        "spa" to "🇪🇸 Spanish (spa)",
+        "fra" to "🇫🇷 French (fra)",
+        "por" to "🇵🇹 Portuguese (por)",
+        "nld" to "🇳🇱 Dutch (nld)",
+        "arb" to "🇸🇦 Arabic (arb)",
     )
 
-    private var selectedLanguageCode = "spa"
+    // null until the user picks a language for the first time.
+    private var selectedLanguageCode: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -57,33 +56,18 @@ class HomeFragment : Fragment() {
         val username = arguments?.getString("username").orEmpty()
         binding.welcomeText.text = getString(R.string.home_welcome, username)
 
-        // 1. Carica la lingua salvata in precedenza su disco (SharedPreferences)
+        // Load the last chosen language from local storage (null the first time).
         val prefs = requireContext().getSharedPreferences("polyglot_prefs", Context.MODE_PRIVATE)
-        selectedLanguageCode = prefs.getString("target_lang", "spa") ?: "spa"
+        selectedLanguageCode = prefs.getString("target_lang", null)
+        // Ignore a stale language no longer available (e.g. old 'jpn').
+        if (selectedLanguageCode !in languageNames.keys) selectedLanguageCode = null
         updateLanguageDisplay()
 
-        // 2. Click sul box della lingua per aprirne la selezione
-        binding.languageCard.setOnClickListener {
-            showLanguageSelectionDialog()
-        }
+        binding.languageCard.setOnClickListener { showLanguageSelectionDialog() }
 
-        // 3. Click su Allenamento Casuale (modalità "random")
-        binding.trainRandomButton.setOnClickListener {
-            val bundle = bundleOf(
-                "targetLang" to selectedLanguageCode,
-                "mode" to "random"
-            )
-            findNavController().navigate(R.id.action_home_to_training, bundle)
-        }
-
-        // 4. Click su Impara dai tuoi errori (modalità "errors")
-        binding.trainErrorsButton.setOnClickListener {
-            val bundle = bundleOf(
-                "targetLang" to selectedLanguageCode,
-                "mode" to "errors"
-            )
-            findNavController().navigate(R.id.action_home_to_training, bundle)
-        }
+        // Training buttons require a language to be selected first.
+        binding.trainRandomButton.setOnClickListener { startTraining("random") }
+        binding.trainErrorsButton.setOnClickListener { startTraining("errors") }
         binding.studyHereButton.setOnClickListener { comingSoon() }
         binding.addPhotoButton.setOnClickListener { comingSoon() }
         binding.statsButton.setOnClickListener { comingSoon() }
@@ -92,14 +76,30 @@ class HomeFragment : Fragment() {
         }
     }
 
+    /** Navigate to training only if a language is selected, otherwise warn. */
+    private fun startTraining(mode: String) {
+        val lang = selectedLanguageCode
+        if (lang == null) {
+            Toast.makeText(requireContext(), R.string.home_select_language_first, Toast.LENGTH_SHORT).show()
+            return
+        }
+        findNavController().navigate(
+            R.id.action_home_to_training,
+            bundleOf("targetLang" to lang, "mode" to mode)
+        )
+    }
+
     private fun updateLanguageDisplay() {
-        binding.selectedLanguageText.text = languageNames[selectedLanguageCode] ?: selectedLanguageCode
+        val code = selectedLanguageCode
+        binding.selectedLanguageText.text =
+            if (code == null) getString(R.string.home_language_placeholder)
+            else languageNames[code] ?: code
     }
 
     private fun showLanguageSelectionDialog() {
         val codes = languageNames.keys.toList()
         val displayOptions = codes.map { languageNames[it] ?: it }.toTypedArray()
-        val currentIndex = codes.indexOf(selectedLanguageCode).coerceAtLeast(0)
+        val currentIndex = selectedLanguageCode?.let { codes.indexOf(it) } ?: -1
 
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.home_select_language_title)

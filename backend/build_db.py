@@ -19,7 +19,7 @@ def main():
     con.executescript("BEGIN;\n" + seed + "\nCOMMIT;")
     con.commit()
 
-    for table in ("users", "cards", "sessions", "attempts"):
+    for table in ("users", "cards", "sessions", "errors"):
         print(f"{table:10}", con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
     con.close()
 
