@@ -1,73 +1,54 @@
-"""
-extract_omw.py  (basato sulla libreria moderna `wn`)
-----------------------------------------------------
-Estrae coppie di traduzione (inglese -> lingua target) da Open Multilingual
-WordNet usando la libreria `wn`. La traduzione tra lingue passa automaticamente
-dall'ILI (l'indice interlingua), quindi funziona con qualsiasi wordnet allineato.
-Il TEMA di ogni carta viene dal lexfile del synset inglese (es. 'noun.food').
+"""Extract translation pairs (English -> target) from Open Multilingual WordNet
+into seed_cards.sql. Cross-language mapping goes through the ILI; the card theme
+comes from the English synset's lexfile. Runs locally.
 
-Gira in LOCALE sul tuo PC. Produce `seed_cards.sql` da caricare poi su MySQL.
-
-Uso:
-    pip install -r requirements.txt
-    python extract_omw.py
+Deps: pip install wn wordfreq
 """
 
 import wn
 from wordfreq import zipf_frequency
 
-# --- Configurazione -------------------------------------------------------
-# Hub inglese: fornisce concetti, ILI e temi (lexfile). L'inglese e' anche la
-# lingua base mostrata sulla flashcard.
-# NB: usiamo 'omw-en' (PWN 3.0) e NON 'oewn': su oewn lexfile() e' None (niente temi).
-EN_LEXICON = "omw-en"        # OMW English (espone lexfile per tutti i nomi)
-SOURCE_LANG = "eng"          # come lo salviamo nel DB (source_lang delle carte)
+# English hub: source words, ILI and themes (lexfile).
+# Use 'omw-en' (PWN 3.0), NOT 'oewn' whose lexfile() is None.
+EN_LEXICON = "omw-en"
+SOURCE_LANG = "eng"
 
-# Progetti da scaricare in `wn` (una volta sola). "omw:1.4" installa in blocco
-# tutti i wordnet OMW (~30 lingue, arabo incluso), omw-en compreso.
+# Installs all ~30 OMW wordnets at once.
 DOWNLOADS = ["omw:1.4"]
 
-# Lingue target: "codice salvato nel DB" -> id del lexicon in `wn` (wn 1.1.x: senza ':1.4').
-# Per vedere gli id ESATTI installati sul tuo PC:  python -c "import wn; [print(l.id, l.language) for l in wn.lexicons()]"
-# Per aggiungere un wordnet da GitHub (formato WN-LMF): wn.download("<url .xml>") una volta, poi metti qui il suo id.
+# DB code -> wn lexicon id (wn 1.1.x uses no ':1.4' suffix).
 TARGET_LEXICONS = {
     "spa": "omw-es",
     "fra": "omw-fr",
     "por": "omw-pt",
     "nld": "omw-nl",
-    "jpn": "omw-ja",
-    # "arb": "omw-arb",   # l'arabo e' gia' dentro omw:1.4
+    "arb": "omw-arb",
 }
 
-# Filtro QUALITA': teniamo solo parole inglesi abbastanza comuni (scala Zipf di
-# wordfreq: ~1 raro, ~8 comunissimo). 3.0 scarta i termini tecnici/oscuri tipo
-# "Animalia" (1.71) ma tiene "pest" (3.64), "apple" (4.76), "dog" (5.10).
+# Keep only reasonably common English words (Zipf ~1 rare .. ~8 very common).
+# 3.0 drops obscure terms like "Animalia" (1.71) but keeps "apple" (4.76).
 MIN_ZIPF = 3.0
 
-# Codici lingua per wordfreq (per ordinare le traduzioni per frequenza).
-WF_LANG = {"eng": "en", "spa": "es", "fra": "fr", "por": "pt", "nld": "nl", "jpn": "ja"}
+WF_LANG = {"eng": "en", "spa": "es", "fra": "fr", "por": "pt", "nld": "nl", "arb": "ar"}
 
-# lexfile di WordNet -> tema dell'app (esportiamo solo questi).
 THEME_MAP = {
-    "noun.food":       "cibo",
-    "noun.animal":     "animali",
-    "noun.plant":      "piante",
-    "noun.body":       "corpo",
-    "noun.artifact":   "oggetti",
-    "noun.location":   "luoghi",
-    "noun.person":     "persone",
-    "noun.substance":  "materiali",
-    "noun.time":       "tempo",
-    "noun.possession": "denaro",
-    "noun.feeling":    "emozioni",
+    "noun.food":       "food",
+    "noun.animal":     "animals",
+    "noun.plant":      "plants",
+    "noun.body":       "body",
+    "noun.artifact":   "objects",
+    "noun.location":   "places",
+    "noun.person":     "people",
+    "noun.substance":  "materials",
+    "noun.time":       "time",
+    "noun.possession": "money",
+    "noun.feeling":    "emotions",
 }
 
 OUTPUT_FILE = "seed_cards.sql"
-# --------------------------------------------------------------------------
 
 
 def single_words(forms):
-    """Solo parole singole (no spazi, no simboli). isalpha() e' unicode-aware."""
     out = []
     for w in forms:
         w = (w or "").strip()
@@ -77,7 +58,7 @@ def single_words(forms):
 
 
 def zipf_safe(word, wf_lang):
-    """Frequenza Zipf; None se la lingua non ha il tokenizer (es. ja senza MeCab)."""
+    # None when the language has no tokenizer (e.g. ja without MeCab).
     try:
         return zipf_frequency(word, wf_lang)
     except Exception:
@@ -85,7 +66,6 @@ def zipf_safe(word, wf_lang):
 
 
 def best_source(forms):
-    """Parola inglese single-word piu' frequente e la sua frequenza Zipf."""
     best, best_z = None, -1.0
     for w in single_words(forms):
         z = zipf_safe(w, "en") or 0.0
@@ -95,7 +75,6 @@ def best_source(forms):
 
 
 def best_target(forms, wf_lang):
-    """Traduzione single-word piu' frequente; se manca il tokenizer, la prima."""
     cands = single_words(forms)
     if not cands:
         return None
@@ -104,39 +83,26 @@ def best_target(forms, wf_lang):
 
 
 def main():
-    # 1) Scarica hub + wordnet (idempotente: se gia' presente, la ignoriamo).
     for spec in DOWNLOADS:
         try:
             wn.download(spec)
         except Exception as e:
-            print(f"(info) '{spec}' gia' presente o non riscaricato: {e}")
-
-    print("Lexicon installati:")
-    for lex in wn.lexicons():
-        print(f"   {lex.id:16} {lex.language}")
-    print()
+            print(f"(info) '{spec}' already present: {e}")
 
     en = wn.Wordnet(EN_LEXICON)
-
-    seen = set()                 # dedup su (parola_eng, target_lang, parola_target)
-    rows = []                    # (src, target_lang, tgt, theme)
-    no_lexfile = 0
+    seen = set()
+    rows = []
 
     for es in en.synsets(pos="n"):
-        lexfile = es.lexfile()
-        if lexfile is None:
-            no_lexfile += 1
-            continue
-        theme = THEME_MAP.get(lexfile)
+        theme = THEME_MAP.get(es.lexfile())
         if theme is None:
             continue
 
         src, src_z = best_source(es.lemmas())
-        if not src or src_z < MIN_ZIPF:      # scarta concetti con parola inglese rara/oscura
+        if not src or src_z < MIN_ZIPF:
             continue
 
         for lang, lex_id in TARGET_LEXICONS.items():
-            # raccogli i lemmi da TUTTI i synset tradotti, poi prendi il migliore
             cand = []
             for t in es.translate(lexicon=lex_id):
                 cand += t.lemmas()
@@ -151,9 +117,6 @@ def main():
             rows.append((src, lang, tgt, theme))
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write("-- Carte generate da Open Multilingual WordNet (libreria wn)\n")
-        f.write(f"-- {SOURCE_LANG} -> {list(TARGET_LEXICONS.keys())}, {len(rows)} carte\n")
-        f.write("SET NAMES utf8mb4;\n\n")
         for src, lang, tgt, theme in rows:
             s = src.replace("'", "''")
             t = tgt.replace("'", "''")
@@ -163,18 +126,11 @@ def main():
                 f"VALUES (NULL, '{SOURCE_LANG}', '{lang}', '{s}', '{t}', '{theme}', 'seed');\n"
             )
 
-    # Riepilogo per lingua e per tema.
     from collections import Counter
-    if no_lexfile:
-        print(f"ATTENZIONE: {no_lexfile} synset senza lexfile (temi non disponibili). "
-              f"Se sono TROPPI, prova un altro EN_LEXICON.\n")
     per_lang = Counter(lang for _, lang, _, _ in rows)
-    print(f"Scritte {len(rows)} carte in {OUTPUT_FILE}\n")
+    print(f"{len(rows)} cards -> {OUTPUT_FILE}")
     for lang, n in per_lang.most_common():
-        print(f"{SOURCE_LANG} -> {lang}: {n} carte")
-        by_theme = Counter(theme for _, l, _, theme in rows if l == lang)
-        for theme, tn in by_theme.most_common():
-            print(f"    {theme:12} {tn}")
+        print(f"  {lang}: {n}")
 
 
 if __name__ == "__main__":

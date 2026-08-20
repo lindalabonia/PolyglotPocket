@@ -1,23 +1,20 @@
 package com.example.polyglotpocket.ui.login
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
+import com.example.polyglotpocket.data.BackendApi
+import com.example.polyglotpocket.data.TokenStore
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel della schermata di login.
- *
- * Qui vive la concurrency (REQ. 7): il login sara' una chiamata di rete al
- * backend Flask, quindi una `suspend fun` lanciata in `viewModelScope`. Per ora
- * l'autenticazione e' SIMULATA con un `delay` per mostrare lo spinner senza
- * bloccare la UI. Verra' sostituita dalla vera chiamata Retrofit (REQ. 2/9).
+ * Login/registration against the backend. The network calls run in
+ * viewModelScope (coroutines, REQ. 7); on success the JWT is stored locally.
  */
-class LoginViewModel : ViewModel() {
+class LoginViewModel(app: Application) : AndroidViewModel(app) {
 
-    /** Stati possibili della schermata di login. */
     sealed interface State {
         data object Idle : State
         data object Loading : State
@@ -28,20 +25,40 @@ class LoginViewModel : ViewModel() {
     private val _state = MutableLiveData<State>(State.Idle)
     val state: LiveData<State> = _state
 
-    fun login(username: String, password: String) {
-        if (username.isBlank() || password.isBlank()) {
-            _state.value = State.Error("empty")
+    fun login(username: String, password: String) = run(username, password, register = false)
+    fun register(username: String, password: String) = run(username, password, register = true)
+
+    fun loginWithGoogle(idToken: String, rawNonce: String) {
+        _state.value = State.Loading
+        viewModelScope.launch {
+            _state.value = try {
+                val result = BackendApi.googleSignIn(idToken, rawNonce)
+                TokenStore.save(getApplication(), result.token)
+                State.Success(result.username)
+            } catch (e: Exception) {
+                State.Error(e.message ?: "Network error")
+            }
+        }
+    }
+
+    private fun run(username: String, password: String, register: Boolean) {
+        val u = username.trim()
+        if (u.isBlank() || password.isBlank()) {
+            _state.value = State.Error("Enter username and password")
             return
         }
         _state.value = State.Loading
         viewModelScope.launch {
-            // TODO: sostituire con la chiamata reale al backend (POST /login).
-            delay(1000)
-            _state.value = State.Success(username.trim())
+            _state.value = try {
+                val result = if (register) BackendApi.register(u, password) else BackendApi.login(u, password)
+                TokenStore.save(getApplication(), result.token)
+                State.Success(result.username)
+            } catch (e: Exception) {
+                State.Error(e.message ?: "Network error")
+            }
         }
     }
 
-    /** Riporta lo stato a Idle dopo aver mostrato un errore/successo. */
     fun consumeState() {
         _state.value = State.Idle
     }

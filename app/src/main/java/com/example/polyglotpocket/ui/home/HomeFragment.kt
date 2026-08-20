@@ -11,14 +11,14 @@ import com.example.polyglotpocket.R
 import com.example.polyglotpocket.databinding.FragmentHomeBinding
 
 /**
- * Menu principale. Ogni pulsante corrisponde a una funzionalita' del progetto:
- *  - Allenamento casuale       -> Modalita' 1 (REQ. 7, 9, 10)
- *  - Impara dai tuoi errori    -> Modalita' 2
- *  - Studia qui (GPS)          -> REQ. 5 + REQ. 1 (OpenStreetMap)
- *  - Aggiungi parola da foto   -> REQ. 6 + REQ. 8 (Cloud Vision) + REQ. 1 (traduzione)
- *  - Statistiche               -> REQ. 3 (grafica 2D)
+ * Main menu. Each button maps to a project feature:
+ *  - Random training      -> mode 1 (REQ. 7, 9, 10)
+ *  - Review your mistakes -> mode 2
+ *  - Study here (GPS)     -> REQ. 5 + REQ. 1 (OpenStreetMap)
+ *  - Add word from photo  -> REQ. 6 + REQ. 8 (Cloud Vision) + REQ. 1 (translation)
+ *  - Statistics           -> REQ. 3 (2D graphics)
  *
- * Per ora le voci mostrano un placeholder: le colleghiamo una alla volta.
+ * The entries show a placeholder for now; we wire them one at a time.
  */
 class HomeFragment : Fragment() {
 

@@ -17,7 +17,7 @@
             android:layout_marginBottom="32dp"
             android:textSize="24sp"
             android:textStyle="bold"
-            tools:text="Ciao, Linda!"
+            tools:text="Hi, Linda!"
             xmlns:tools="http://schemas.android.com/tools" />
 
         <com.google.android.material.button.MaterialButton
