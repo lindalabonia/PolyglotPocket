@@ -8,8 +8,8 @@ import com.example.polyglotpocket.data.BackendApi
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel della schermata di test del backend. Lancia le chiamate di rete in
- * viewModelScope (coroutine) e pubblica un semplice stato testuale da mostrare.
+ * ViewModel for the backend test screen. Runs the network calls in
+ * viewModelScope (coroutines) and exposes a simple text state to display.
  */
 class ApiTestViewModel : ViewModel() {
 
@@ -22,13 +22,13 @@ class ApiTestViewModel : ViewModel() {
     val state: LiveData<UiState> = _state
 
     fun loadLanguages() {
-        _state.value = UiState(loading = true, output = "Carico /languages ...")
+        _state.value = UiState(loading = true, output = "Loading /languages ...")
         viewModelScope.launch {
             _state.value = try {
                 val langs = BackendApi.getLanguages()
-                UiState(output = "Lingue disponibili:\n" + langs.joinToString(", "))
+                UiState(output = "Available languages:\n" + langs.joinToString(", "))
             } catch (e: Exception) {
-                UiState(output = "ERRORE: ${e.message}")
+                UiState(output = "ERROR: ${e.message}")
             }
         }
     }
@@ -36,21 +36,21 @@ class ApiTestViewModel : ViewModel() {
     fun loadCard(targetLang: String) {
         val lang = targetLang.trim()
         if (lang.isEmpty()) {
-            _state.value = UiState(output = "Inserisci un codice lingua (es. spa)")
+            _state.value = UiState(output = "Enter a language code (e.g. spa)")
             return
         }
-        _state.value = UiState(loading = true, output = "Carico una carta ($lang) ...")
+        _state.value = UiState(loading = true, output = "Loading a card ($lang) ...")
         viewModelScope.launch {
             _state.value = try {
                 val cards = BackendApi.getCards(lang, 1)
                 if (cards.isEmpty()) {
-                    UiState(output = "Nessuna carta per '$lang'")
+                    UiState(output = "No card for '$lang'")
                 } else {
                     val c = cards.first()
-                    UiState(output = "Carta:\n${c.wordSource}  ->  ${c.wordTarget}\ntema: ${c.theme}")
+                    UiState(output = "Card:\n${c.wordSource}  ->  ${c.wordTarget}\ntheme: ${c.theme}")
                 }
             } catch (e: Exception) {
-                UiState(output = "ERRORE: ${e.message}")
+                UiState(output = "ERROR: ${e.message}")
             }
         }
     }

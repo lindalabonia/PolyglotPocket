@@ -1,44 +1,38 @@
--- Schema del database Polyglot Pocket (SQLite)
--- SQLite e' UTF-8 nativo: nessuna dichiarazione di charset necessaria.
--- Le chiavi esterne vanno abilitate a runtime con: PRAGMA foreign_keys = ON;
+-- Polyglot Pocket database (SQLite).
+-- Foreign keys must be enabled per connection: PRAGMA foreign_keys = ON;
 
--- ---------------------------------------------------------------------------
--- Utenti (REQ. 2)
--- ---------------------------------------------------------------------------
+-- A user is either local (username + password_hash) or google (google_sub + email).
 CREATE TABLE IF NOT EXISTS users (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    username      TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,               -- MAI la password in chiaro
-    native_lang   TEXT NOT NULL DEFAULT 'eng', -- lingua base (prompt) = source_lang delle carte
-    target_lang   TEXT,                         -- lingua scelta da imparare; NULL = non ancora scelta
+    username      TEXT UNIQUE,                 -- local only
+    password_hash TEXT,                        -- local only, never the plain password
+    google_sub    TEXT UNIQUE,                 -- google only, stable Google user id
+    email         TEXT,
+    display_name  TEXT,
+    auth_provider TEXT NOT NULL,               -- 'local' | 'google'
+    native_lang   TEXT NOT NULL DEFAULT 'eng',
+    target_lang   TEXT,                        -- language being learned, NULL until picked
     created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- ---------------------------------------------------------------------------
--- Catalogo carte (condiviso + personali)
---   owner_id NULL           -> carta del catalogo condiviso (da OMW)
---   owner_id valorizzato     -> carta personale dell'utente (es. da foto, REQ. 6)
--- ---------------------------------------------------------------------------
+-- owner_id NULL = shared catalog (from OMW); set = the user's own card (e.g. from a photo).
 CREATE TABLE IF NOT EXISTS cards (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     owner_id     INTEGER,
-    source_lang  TEXT NOT NULL,                 -- lingua base (mostrata)
-    target_lang  TEXT NOT NULL,                 -- lingua da imparare (digitata)
+    source_lang  TEXT NOT NULL,
+    target_lang  TEXT NOT NULL,
     word_source  TEXT NOT NULL,
     word_target  TEXT NOT NULL,
-    theme        TEXT NOT NULL,                 -- usato per l'allenamento GPS (REQ. 5)
-    origin       TEXT NOT NULL DEFAULT 'seed',  -- 'seed' | 'photo'
+    theme        TEXT NOT NULL,
+    origin       TEXT NOT NULL DEFAULT 'seed',
     FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_cards_lang_theme ON cards (source_lang, target_lang, theme);
 
--- ---------------------------------------------------------------------------
--- Allenamenti: un record per sessione (giuste/sbagliate/tempo)
--- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sessions (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id     INTEGER NOT NULL,
-    mode        TEXT NOT NULL,                  -- 'random' | 'errors' | 'gps'
+    mode        TEXT NOT NULL,                 -- 'random' | 'errors' | 'gps'
     target_lang TEXT NOT NULL,
     num_cards   INTEGER NOT NULL,
     num_correct INTEGER NOT NULL DEFAULT 0,
@@ -48,19 +42,15 @@ CREATE TABLE IF NOT EXISTS sessions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- ---------------------------------------------------------------------------
--- Tentativi: un record per carta mostrata.
--- Serve a 3 cose: data di presentazione (shown_at), modalita' "impara dagli
--- errori" (is_correct = 0), e i grafici delle statistiche (REQ. 3).
--- ---------------------------------------------------------------------------
+-- One row per card shown: feeds the stats and the "review mistakes" mode.
 CREATE TABLE IF NOT EXISTS attempts (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id   INTEGER NOT NULL,
     user_id      INTEGER NOT NULL,
     card_id      INTEGER NOT NULL,
     answer_given TEXT,
-    is_correct   INTEGER NOT NULL,              -- 0/1
-    similarity   REAL,                          -- pronto per la % di somiglianza (futuro)
+    is_correct   INTEGER NOT NULL,
+    similarity   REAL,
     shown_at     TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id)    REFERENCES users(id)    ON DELETE CASCADE,

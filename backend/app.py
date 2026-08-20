@@ -1,5 +1,6 @@
 """Polyglot Pocket REST backend."""
 
+import hashlib
 import os
 import sqlite3
 from datetime import datetime, timedelta, timezone
@@ -8,6 +9,8 @@ import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from flask import Flask, jsonify, request
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
 
 app = Flask(__name__)
 
@@ -17,6 +20,7 @@ MAX_CARDS = 100
 # Signing key for the session tokens, read from the environment (set in the
 # WSGI file on PythonAnywhere). The fallback is only for local development.
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-insecure-change-me")
+GOOGLE_WEB_CLIENT_ID = os.environ.get("GOOGLE_WEB_CLIENT_ID", "")
 TOKEN_TTL = timedelta(days=7)
 
 ph = PasswordHasher()
@@ -96,6 +100,50 @@ def login():
         return jsonify({"error": "invalid credentials"}), 401
 
     return jsonify({"token": make_token(row["id"]), "user": {"id": row["id"], "username": username}})
+
+
+@app.post("/auth/google")
+def auth_google():
+    data = request.get_json(silent=True) or {}
+    token = data.get("id_token") or ""
+    raw_nonce = data.get("nonce") or ""
+    if not token:
+        return jsonify({"error": "missing id_token"}), 400
+
+    # Verifies signature, expiry, issuer and audience (== our web client id).
+    try:
+        info = google_id_token.verify_oauth2_token(
+            token, google_requests.Request(), GOOGLE_WEB_CLIENT_ID
+        )
+    except ValueError:
+        return jsonify({"error": "invalid Google token"}), 401
+
+    # The token's nonce must be SHA-256 of the raw nonce the app generated.
+    expected_nonce = hashlib.sha256(raw_nonce.encode()).hexdigest()
+    if not raw_nonce or info.get("nonce") != expected_nonce:
+        return jsonify({"error": "invalid nonce"}), 401
+
+    sub = info["sub"]
+    email = info.get("email")
+    name = info.get("name") or email or "user"
+
+    con = get_db()
+    try:
+        row = con.execute("SELECT id FROM users WHERE google_sub = ?", (sub,)).fetchone()
+        if row is None:
+            cur = con.execute(
+                "INSERT INTO users (google_sub, email, display_name, auth_provider) "
+                "VALUES (?, ?, ?, 'google')",
+                (sub, email, name),
+            )
+            con.commit()
+            uid = cur.lastrowid
+        else:
+            uid = row["id"]
+    finally:
+        con.close()
+
+    return jsonify({"token": make_token(uid), "user": {"id": uid, "username": name}})
 
 
 @app.get("/me")

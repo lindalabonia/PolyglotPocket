@@ -3,28 +3,33 @@
 
     <!-- Login -->
     <string name="login_title">Polyglot Pocket</string>
-    <string name="login_subtitle">Impara i vocaboli, una flashcard alla volta</string>
-    <string name="login_username_hint">Nome utente</string>
+    <string name="login_subtitle">Learn vocabulary, one flashcard at a time</string>
+    <string name="login_username_hint">Username</string>
     <string name="login_password_hint">Password</string>
-    <string name="login_button">Accedi</string>
-    <string name="login_error_empty">Inserisci nome utente e password</string>
+    <string name="login_button">Log in</string>
+    <string name="login_register">Create account</string>
+    <string name="login_google">Sign in with Google</string>
+    <string name="login_or">or</string>
+    <string name="login_error_empty">Enter username and password</string>
 
     <!-- Home -->
-    <string name="home_welcome">Ciao, %1$s!</string>
-    <string name="home_target_lang_label">Lingua di studio</string>
-    <string name="home_select_language_title">Scegli la lingua da imparare</string>
-    <string name="home_train_random">Allenamento casuale</string>
-    <string name="home_train_errors">Impara dai tuoi errori</string>
-    <string name="home_study_here">Studia qui (GPS)</string>
-    <string name="home_add_photo">Aggiungi parola da foto</string>
+    <string name="home_title">Home</string>
     <string name="home_stats">Statistiche</string>
+    <string name="home_welcome">Hi, %1$s!</string>
+    <string name="home_target_lang_label">Study language</string>
+    <string name="home_select_language_title">Choose language</string>
+    <string name="home_train_random">Random training</string>
+    <string name="home_train_errors">Review your mistakes</string>
+    <string name="home_study_here">Study here (GPS)</string>
+    <string name="home_add_photo">Add word from photo</string>
+    <string name="home_stats">Statistics</string>
     <string name="home_test_backend">Test backend (debug)</string>
 
-    <!-- Test backend -->
+    <!-- Backend test -->
     <string name="apitest_title">Test backend</string>
-    <string name="apitest_load_languages">Carica lingue (/languages)</string>
-    <string name="apitest_target_hint">Codice lingua (es. spa)</string>
-    <string name="apitest_load_card">Carica una carta (/cards)</string>
+    <string name="apitest_load_languages">Load languages (/languages)</string>
+    <string name="apitest_target_hint">Language code (e.g. spa)</string>
+    <string name="apitest_load_card">Load a card (/cards)</string>
 
     <string name="coming_soon">Prossimamente</string>
 
@@ -41,4 +46,9 @@
     <string name="training_summary_result">Hai completato l\'allenamento:\n✅ Corrette: %1$d\n❌ Errori: %2$d</string>
     <string name="training_back_to_home">Torna alla Home</string>
 
+    <!-- Side menu -->
+    <string name="menu_change_language">Change language</string>
+    <string name="menu_logout">Log out</string>
+
+    <string name="coming_soon">Coming soon</string>
 </resources>

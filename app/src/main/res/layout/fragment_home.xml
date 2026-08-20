@@ -19,7 +19,8 @@
             android:layout_marginBottom="16dp"
             android:textSize="24sp"
             android:textStyle="bold"
-            tools:text="Ciao, Linda!" />
+            tools:text="Hi, User!"
+            xmlns:tools="http://schemas.android.com/tools" />
 
         <!-- Card Selettore Lingua di Studio -->
         <com.google.android.material.card.MaterialCardView

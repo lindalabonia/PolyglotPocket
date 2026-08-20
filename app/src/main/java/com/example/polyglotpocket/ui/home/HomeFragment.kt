@@ -16,6 +16,16 @@ import com.example.polyglotpocket.data.BackendApi
 import com.example.polyglotpocket.databinding.FragmentHomeBinding
 import kotlinx.coroutines.launch
 
+/**
+ * Main menu. Each button maps to a project feature:
+ *  - Random training      -> mode 1 (REQ. 7, 9, 10)
+ *  - Review your mistakes -> mode 2
+ *  - Study here (GPS)     -> REQ. 5 + REQ. 1 (OpenStreetMap)
+ *  - Add word from photo  -> REQ. 6 + REQ. 8 (Cloud Vision) + REQ. 1 (translation)
+ *  - Statistics           -> REQ. 3 (2D graphics)
+ *
+ * The entries show a placeholder for now; we wire them one at a time.
+ */
 class HomeFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null
