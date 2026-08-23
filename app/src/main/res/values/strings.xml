@@ -58,5 +58,6 @@
     <string name="gps_location_not_found">Could not obtain GPS location. Make sure GPS is enabled.</string>
     <string name="gps_context_dialog_title">📍 Study Here (GPS)</string>
     <string name="gps_context_dialog_message">Detected place: %1$s\nTheme: %2$s\n\nWould you like to start training with vocabulary for this context?</string>
+    <string name="gps_context_dialog_prompt">Would you like to start training with vocabulary for this context?</string>
     <string name="gps_btn_start">Start Training</string>
 </resources>

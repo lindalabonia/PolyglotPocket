@@ -120,36 +120,80 @@ class HomeFragment : Fragment() {
     private fun startGpsFlow() {
         val lang = selectedLanguageCode ?: return
         Toast.makeText(requireContext(), R.string.gps_detecting, Toast.LENGTH_SHORT).show()
+        binding.studyHereButton.isEnabled = false
 
         viewLifecycleOwner.lifecycleScope.launch {
-            val location = GpsThemeResolver.getCurrentLocation(requireContext())
-            // If location is not immediately available, use default coordinates
-            val lat = location?.latitude ?: 41.9028 // Rome by default
-            val lon = location?.longitude ?: 12.4964
+            try {
+                val location = GpsThemeResolver.getCurrentLocation(requireContext())
+                // If location is not immediately available, use default coordinates
+                val lat = location?.latitude ?: 41.9028 // Rome by default
+                val lon = location?.longitude ?: 12.4964
 
-            val contextResult = GpsThemeResolver.resolvePlaceAndTheme(requireContext(), lat, lon)
+                val contextResult = GpsThemeResolver.resolvePlaceAndTheme(requireContext(), lat, lon)
 
-            AlertDialog.Builder(requireContext())
-                .setTitle(R.string.gps_context_dialog_title)
-                .setMessage(
-                    getString(
-                        R.string.gps_context_dialog_message,
-                        contextResult.placeName,
-                        contextResult.themeDisplayName
-                    )
-                )
-                .setPositiveButton(R.string.gps_btn_start) { _, _ ->
-                    findNavController().navigate(
-                        R.id.action_home_to_training,
-                        bundleOf(
-                            "targetLang" to lang,
-                            "mode" to "gps",
-                            "theme" to contextResult.theme
-                        )
-                    )
+                // Inflate custom dialog layout with embedded OpenStreetMap WebView
+                val dialogBinding = com.example.polyglotpocket.databinding.DialogGpsPreviewBinding.inflate(layoutInflater)
+                dialogBinding.detectedPlaceText.text = contextResult.placeName
+                dialogBinding.detectedThemeText.text = contextResult.themeDisplayName
+
+                // Configure WebView for Leaflet.js rendering
+                val webView = dialogBinding.mapWebView
+                webView.webViewClient = android.webkit.WebViewClient()
+                webView.webChromeClient = android.webkit.WebChromeClient()
+                webView.settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                    userAgentString = "PolyglotPocket-Android/1.0"
+                    loadWithOverviewMode = true
+                    useWideViewPort = true
                 }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
+
+                val escapedName = org.json.JSONObject.quote(contextResult.placeName)
+                val html = """
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+                        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+                        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                        <style>
+                            body, html, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: #e0e0e0; }
+                        </style>
+                    </head>
+                    <body>
+                        <div id="map"></div>
+                        <script>
+                            var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([${contextResult.latitude}, ${contextResult.longitude}], 16);
+                            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                                subdomains: 'abcd',
+                                maxZoom: 19
+                            }).addTo(map);
+                            L.marker([${contextResult.latitude}, ${contextResult.longitude}]).addTo(map).bindPopup($escapedName).openPopup();
+                        </script>
+                    </body>
+                    </html>
+                """.trimIndent()
+                webView.loadDataWithBaseURL("https://openstreetmap.org", html, "text/html", "UTF-8", null)
+
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    .setView(dialogBinding.root)
+                    .setPositiveButton(R.string.gps_btn_start) { _, _ ->
+                        findNavController().navigate(
+                            R.id.action_home_to_training,
+                            bundleOf(
+                                "targetLang" to lang,
+                                "mode" to "gps",
+                                "theme" to contextResult.theme
+                            )
+                        )
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "GPS detection error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            } finally {
+                binding.studyHereButton.isEnabled = true
+            }
         }
     }
 
