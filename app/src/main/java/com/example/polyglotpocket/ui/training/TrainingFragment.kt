@@ -20,17 +20,17 @@ import com.example.polyglotpocket.databinding.FragmentTrainingBinding
 import kotlin.math.abs
 
 /**
- * Schermata di allenamento (Flashcard UI).
- * Osserva il TrainingViewModel e aggiorna l'interfaccia.
+ * Flashcard training screen.
+ * Observes the TrainingViewModel and updates the UI.
  */
 class TrainingFragment : Fragment(), SensorEventListener {
     private var _binding: FragmentTrainingBinding? = null
     private val binding get() = _binding!!
 
-    // Inizializza il ViewModel con il lifecycle del Fragment
+    // Initialize the ViewModel scoped to the Fragment lifecycle
     private val viewModel: TrainingViewModel by viewModels()
 
-    // Gestione del Giroscopio
+    // Gyroscope management
     private var sensorManager: SensorManager? = null
     private var gyroscopeSensor: Sensor? = null
     private var lastRotationTriggerTime = 0L
@@ -48,11 +48,11 @@ class TrainingFragment : Fragment(), SensorEventListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Inizializziamo il SensorManager e il Giroscopio
+        // Initialize SensorManager and Gyroscope sensor
         sensorManager = requireContext().getSystemService(Context.SENSOR_SERVICE) as? SensorManager
         gyroscopeSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
 
-        // Osserviamo i cambiamenti di stato dal ViewModel
+        // Observe ViewModel state changes
         viewModel.state.observe(viewLifecycleOwner) { state ->
             when (state) {
                 is TrainingViewModel.State.Loading -> {
@@ -78,25 +78,26 @@ class TrainingFragment : Fragment(), SensorEventListener {
             }
         }
 
-        // Language and mode passed from the Home screen.
+        // Language, mode and optional theme (from GPS) passed from the Home screen.
         val targetLang = arguments?.getString("targetLang") ?: "spa"
         val mode = arguments?.getString("mode") ?: "random"
+        val theme = arguments?.getString("theme")
 
         // Ask how many cards, then start. Survives rotation via the ViewModel:
         // re-show the dialog only if a session hasn't started yet.
         if (!viewModel.hasStarted) {
-            showCardCountDialog(mode, targetLang)
+            showCardCountDialog(mode, targetLang, theme)
         }
     }
 
     /** Let the user pick the number of cards before the session starts. */
-    private fun showCardCountDialog(mode: String, targetLang: String) {
+    private fun showCardCountDialog(mode: String, targetLang: String, theme: String?) {
         val counts = intArrayOf(2, 5, 10, 20)
         val labels = counts.map { getString(R.string.training_card_count_option, it) }.toTypedArray()
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.training_card_count_title)
             .setItems(labels) { _, which ->
-                viewModel.startTraining(mode = mode, targetLang = targetLang, numCards = counts[which])
+                viewModel.startTraining(mode = mode, targetLang = targetLang, numCards = counts[which], theme = theme)
             }
             .setCancelable(false)
             .setNegativeButton(R.string.training_back_to_home) { _, _ ->
@@ -118,8 +119,8 @@ class TrainingFragment : Fragment(), SensorEventListener {
         val feedback = state.feedback
 
         if (feedback == null) {
-            // Stato 1: L'utente deve ancora rispondere
-            canUseGyroscopeToNext = false // <-- Giroscopio disattivato finché non rispondi
+            // State 1: Waiting for user answer
+            canUseGyroscopeToNext = false
             binding.inputAnswer.isEnabled = true
             binding.inputAnswer.text?.clear()
             binding.feedbackText.visibility = View.INVISIBLE
@@ -129,9 +130,8 @@ class TrainingFragment : Fragment(), SensorEventListener {
                 viewModel.checkAnswer(answer)
             }
         } else {
-            // Stato 2: L'utente ha risposto, mostriamo il feedback
-            canUseGyroscopeToNext =
-                true // <-- Giroscopio ATTIVATO: puoi ruotare il telefono per avanzare!
+            // State 2: User answered, show feedback and enable gyroscope advance
+            canUseGyroscopeToNext = true
             binding.inputAnswer.isEnabled = false
             binding.feedbackText.visibility = View.VISIBLE
 
@@ -173,7 +173,7 @@ class TrainingFragment : Fragment(), SensorEventListener {
         _binding = null
     }
 
-    // Registriamo il sensore quando la schermata è visibile
+    // Register gyroscope sensor when screen becomes visible
     override fun onResume() {
         super.onResume()
         gyroscopeSensor?.let { sensor ->
@@ -181,32 +181,32 @@ class TrainingFragment : Fragment(), SensorEventListener {
         }
     }
 
-    // Disattiviamo il sensore quando l'utente esce o mette in pausa (risparmio batteria)
+    // Unregister sensor when paused to preserve battery
     override fun onPause() {
         super.onPause()
         sensorManager?.unregisterListener(this)
     }
 
-    // Questo metodo viene chiamato da Android ogni volta che il giroscopio rileva movimento
+    // Called on hardware gyroscope motion events
     override fun onSensorChanged(event: SensorEvent?) {
         if (event?.sensor?.type != Sensor.TYPE_GYROSCOPE) return
 
-        // event.values[1] misura la rotazione sull'asse Y (rotazione/rollio del polso a destra o sinistra)
+        // event.values[1] measures rotation velocity around the Y-axis (wrist twist)
         val rotationSpeedY = event.values[1]
         val currentTime = System.currentTimeMillis()
 
-        // Se l'utente ha già risposto (feedback visibile) ed esegue una rotazione decisa (> 2.5 rad/s)
+        // When feedback is visible and user twists the wrist (> 2.5 rad/s)
         if (canUseGyroscopeToNext && abs(rotationSpeedY) > 2.5f) {
-            // Controllo per evitare scatti multipli entro 1 secondo
+            // Debounce for 1 second to prevent double triggers
             if (currentTime - lastRotationTriggerTime > 1000) {
                 lastRotationTriggerTime = currentTime
                 canUseGyroscopeToNext = false
-                viewModel.nextCard() // Passa alla prossima carta! 🚀
+                viewModel.nextCard()
             }
         }
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        // Non necessario per il nostro scopo
+        // Not needed for this use case
     }
 }

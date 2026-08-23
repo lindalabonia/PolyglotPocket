@@ -7,7 +7,7 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-/** Una carta come arriva dal backend. */
+/** A card as received from the backend. */
 data class Card(
     val id: Int,
     val wordSource: String,
@@ -15,14 +15,14 @@ data class Card(
     val theme: String,
 )
 
-/** Rappresenta un singolo tentativo su una carta */
+/** Represents a single attempt on a card */
 data class AttemptRecord(
     val cardId: Int,
     val answerGiven: String,
     val isCorrect: Boolean,
 )
 
-/** Il resoconto completo della sessione da inviare al server */
+/** Full session record sent to the backend */
 data class SessionRecord(
     val mode: String,
     val targetLang: String,
@@ -61,7 +61,7 @@ class ApiException(message: String) : Exception(message)
  */
 object BackendApi {
 
-    // --- Autenticazione (Linda) ---
+    // --- Authentication ---
 
     suspend fun register(username: String, password: String): AuthResult =
         withContext(Dispatchers.IO) { parseAuth(post("/auth/register", authBody(username, password))) }
@@ -74,22 +74,27 @@ object BackendApi {
         parseAuth(post("/auth/google", body))
     }
 
-    // --- Lingue, Carte & Allenamento (Omar & Linda) ---
+    // --- Languages, Cards & Training ---
 
     suspend fun getLanguages(): List<String> = withContext(Dispatchers.IO) {
         val arr = JSONArray(request("GET", "/languages", null, null))
         (0 until arr.length()).map { arr.getString(it) }
     }
 
-    suspend fun getCards(targetLang: String, n: Int, token: String? = null): List<Card> = withContext(Dispatchers.IO) {
-        val arr = JSONArray(request("GET", "/cards?target_lang=$targetLang&n=$n", null, token))
+    suspend fun getCards(targetLang: String, n: Int, theme: String? = null): List<Card> = withContext(Dispatchers.IO) {
+        val path = if (theme.isNullOrBlank()) {
+            "/cards?target_lang=$targetLang&n=$n"
+        } else {
+            "/cards?target_lang=$targetLang&theme=$theme&n=$n"
+        }
+        val arr = JSONArray(request("GET", path, null, null))
         (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
             Card(o.getInt("id"), o.getString("word_source"), o.getString("word_target"), o.getString("theme"))
         }
     }
 
-    /** Scarica le carte su cui l'utente ha ancora sbagliato (coda errori). */
+    /** Fetch cards that the user previously answered incorrectly (errors queue). */
     suspend fun getErrorCards(token: String, targetLang: String, n: Int = 10): List<Card> = withContext(Dispatchers.IO) {
         val arr = JSONArray(request("GET", "/cards/errors?target_lang=$targetLang&n=$n", null, token))
         (0 until arr.length()).map { i ->
@@ -98,7 +103,7 @@ object BackendApi {
         }
     }
 
-    /** Invia al backend la sessione completata e i singoli tentativi */
+    /** Sends the completed session summary and attempts to the backend */
     suspend fun saveSession(token: String, session: SessionRecord): Boolean = withContext(Dispatchers.IO) {
         val json = JSONObject().apply {
             put("mode", session.mode)

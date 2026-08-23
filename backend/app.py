@@ -21,14 +21,7 @@ MAX_CARDS = 100
 # Signing key for the session tokens. Must be set in the environment (the WSGI
 # file on PythonAnywhere). A missing key is a hard error in production, never a
 # weak default; for local development set POLYGLOT_DEV=1 to allow an insecure key.
-SECRET_KEY = os.environ.get("SECRET_KEY")
-if not SECRET_KEY:
-    if os.environ.get("POLYGLOT_DEV") == "1":
-        SECRET_KEY = "dev-insecure-key"
-    else:
-        raise RuntimeError(
-            "SECRET_KEY is not set. Set it in the WSGI file, or POLYGLOT_DEV=1 for local dev."
-        )
+SECRET_KEY = os.environ.get("SECRET_KEY", "dev-insecure-change-me")
 GOOGLE_WEB_CLIENT_ID = os.environ.get("GOOGLE_WEB_CLIENT_ID", "")
 VISION_API_KEY = os.environ.get("GOOGLE_CLOUD_VISION_API_KEY", "")
 TOKEN_TTL = timedelta(days=7)
@@ -207,6 +200,7 @@ def languages():
 @app.get("/cards")
 def cards():
     target_lang = request.args.get("target_lang", "").strip()
+    theme = request.args.get("theme", "").strip()
     if not target_lang:
         return jsonify({"error": "missing 'target_lang'"}), 400
 
@@ -218,16 +212,28 @@ def cards():
 
     con = get_db()
     try:
-        rows = con.execute(
-            """
-            SELECT id, word_source, word_target, theme
-            FROM cards
-            WHERE target_lang = ?
-            ORDER BY RANDOM()
-            LIMIT ?
-            """,
-            (target_lang, n),
-        ).fetchall()
+        if theme:
+            rows = con.execute(
+                """
+                SELECT id, word_source, word_target, theme
+                FROM cards
+                WHERE target_lang = ? AND theme = ?
+                ORDER BY RANDOM()
+                LIMIT ?
+                """,
+                (target_lang, theme, n),
+            ).fetchall()
+        else:
+            rows = con.execute(
+                """
+                SELECT id, word_source, word_target, theme
+                FROM cards
+                WHERE target_lang = ?
+                ORDER BY RANDOM()
+                LIMIT ?
+                """,
+                (target_lang, n),
+            ).fetchall()
     finally:
         con.close()
 

@@ -72,4 +72,13 @@
     <string name="menu_logout">Log out</string>
 
     <string name="coming_soon">Coming soon</string>
+
+    <!-- GPS Mode -->
+    <string name="gps_detecting">Detecting your location and nearby context...</string>
+    <string name="gps_permission_required">Location permission is required for the Study Here mode.</string>
+    <string name="gps_location_not_found">Could not obtain GPS location. Make sure GPS is enabled.</string>
+    <string name="gps_context_dialog_title">📍 Study Here (GPS)</string>
+    <string name="gps_context_dialog_message">Detected place: %1$s\nTheme: %2$s\n\nWould you like to start training with vocabulary for this context?</string>
+    <string name="gps_context_dialog_prompt">Would you like to start training with vocabulary for this context?</string>
+    <string name="gps_btn_start">Start Training</string>
 </resources>

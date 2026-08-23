@@ -13,10 +13,10 @@ import com.example.polyglotpocket.data.TokenStore
 import kotlinx.coroutines.launch
 
 /**
- * Gestisce la logica di gioco dell'allenamento:
- * - Scarica le flashcard dal backend (concorrenza con Coroutine)
- * - Mantiene lo stato (carta corrente, risposte giuste, errori)
- * - Verifica se la parola digitata dall'utente è corretta
+ * Manages the flashcard training game logic:
+ * - Fetches flashcards from backend asynchronously with Coroutines
+ * - Maintains state (current card, correct answers, wrong answers)
+ * - Verifies typed answers against target translations
  */
 class TrainingViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -49,7 +49,7 @@ class TrainingViewModel(app: Application) : AndroidViewModel(app) {
     private var correctCount = 0
     private var wrongCount = 0
 
-    // nuove variabili per tenere traccia della sessione
+    // Session tracking fields
     private val attempts = mutableListOf<AttemptRecord>()
     private var startTimeMs = 0L
     private var currentMode = "random"
@@ -62,12 +62,9 @@ class TrainingViewModel(app: Application) : AndroidViewModel(app) {
     private var finished = false
 
     /**
-     * Scarica le carte dal backend e avvia la sessione.
+     * Fetches cards from backend and starts the training session (random, errors, or gps with theme).
      */
-    /**
-     * Scarica le carte dal backend e avvia la sessione (casuale o errori).
-     */
-    fun startTraining(mode: String = "random", targetLang: String = "spa", numCards: Int = 10) {
+    fun startTraining(mode: String = "random", targetLang: String = "spa", numCards: Int = 10, theme: String? = null) {
         _state.value = State.Loading
         currentMode = mode
         currentLang = targetLang
@@ -81,21 +78,29 @@ class TrainingViewModel(app: Application) : AndroidViewModel(app) {
 
         viewModelScope.launch {
             try {
-                val token = TokenStore.get(getApplication())
-                if (token == null) {
-                    _state.value = State.Error("Session expired, please log in again.")
-                    return@launch
-                }
-                // "errors" = only past mistakes; both modes include the user's own photo cards.
-                cards = if (mode == "errors") {
-                    BackendApi.getErrorCards(token, targetLang, numCards)
-                } else {
-                    BackendApi.getCards(targetLang, numCards, token)
+                // If mode is "errors", fetch only past mistakes (requires token)
+                cards = when (mode) {
+                    "errors" -> {
+                        val token = TokenStore.get(getApplication())
+                        if (token == null) {
+                            _state.value = State.Error("Session expired, please log in again.")
+                            return@launch
+                        }
+                        BackendApi.getErrorCards(token, targetLang, numCards)
+                    }
+                    "gps" -> {
+                        BackendApi.getCards(targetLang, numCards, theme = theme, token)
+                    }
+                    else -> {
+                        BackendApi.getCards(targetLang, numCards, token)
+                    }
                 }
 
                 if (cards.isEmpty()) {
                     if (mode == "errors") {
                         _state.value = State.Error("No mistakes recorded for this language. Great job!")
+                    } else if (mode == "gps" && !theme.isNullOrBlank()) {
+                        _state.value = State.Error("No cards found for theme: $theme. Try random training!")
                     } else {
                         _state.value = State.Error("No cards found for the selected language.")
                     }
@@ -109,12 +114,12 @@ class TrainingViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Confronta la risposta dell'utente con la traduzione corretta.
+     * Compares user input against the expected target word.
      */
     fun checkAnswer(userAnswer: String) {
         val currentCard = cards.getOrNull(currentIndex) ?: return
 
-        // Normalizziamo le stringhe: togliamo spazi extra e rendiamo tutto minuscolo
+        // Normalize strings: trim whitespace and lowercase
         val cleanUser = userAnswer.trim().lowercase()
         val cleanTarget = currentCard.wordTarget.trim().lowercase()
 
@@ -125,13 +130,12 @@ class TrainingViewModel(app: Application) : AndroidViewModel(app) {
             wrongCount++
         }
 
-        // <-- AGGIUNGI QUESTA RIGA PER MEMORIZZARE IL TENTATIVO:
         attempts.add(AttemptRecord(cardId = currentCard.id, answerGiven = cleanUser, isCorrect = isCorrect))
         showCurrentCard(feedback = Feedback(isCorrect = isCorrect, correctAnswer = currentCard.wordTarget))
     }
 
     /**
-     * Passa alla carta successiva o conclude l'allenamento.
+     * Advances to next flashcard or completes the session.
      */
     fun nextCard() {
         if (finished) return  // ignore extra calls (button + gyroscope) after the last card
@@ -140,10 +144,9 @@ class TrainingViewModel(app: Application) : AndroidViewModel(app) {
             showCurrentCard(feedback = null)
         } else {
             finished = true
-            // Calcoliamo la durata della sessione
             val durationMs = System.currentTimeMillis() - startTimeMs
 
-            // Inviamo in background i risultati al server
+            // Send session results in background to server
             viewModelScope.launch {
                 try {
                     val token = TokenStore.get(getApplication()) ?: return@launch
@@ -160,7 +163,7 @@ class TrainingViewModel(app: Application) : AndroidViewModel(app) {
                         )
                     )
                 } catch (_: Exception) {
-                    // Se fallisce l'invio non blocchiamo l'utente
+                    // Non-blocking if save fails
                 }
             }
 

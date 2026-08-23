@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:padding="24dp">
 
-    <!-- Indicatore di progresso (es: Carta 3 di 10) -->
+    <!-- Progress indicator (e.g. Card 3 of 10) -->
     <TextView
         android:id="@+id/progressText"
         android:layout_width="wrap_content"
@@ -17,9 +17,9 @@
         android:textColor="?android:attr/textColorSecondary"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        tools:text="Carta 1 di 10" />
+        tools:text="Card 1 of 10" />
 
-    <!-- Barra di caricamento per quando scarica le carte -->
+    <!-- Loading spinner for card downloads -->
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="wrap_content"
@@ -30,7 +30,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Layout principale dell'allenamento -->
+    <!-- Training main layout -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/trainingContainer"
         android:layout_width="match_parent"
@@ -39,7 +39,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginTop="16dp">
 
-        <!-- La Flashcard fisica -->
+        <!-- Flashcard card view -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/flashcardView"
             android:layout_width="match_parent"
@@ -59,16 +59,16 @@
                 android:gravity="center"
                 android:padding="32dp">
 
-                <!-- Badge con il tema (es. Cibo, Animali) -->
+                <!-- Theme badge (e.g. food, animals) -->
                 <com.google.android.material.chip.Chip
                     android:id="@+id/themeChip"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:clickable="false"
                     android:checkable="false"
-                    tools:text="cibo" />
+                    tools:text="food" />
 
-                <!-- La parola sorgente da tradurre (in grande) -->
+                <!-- Source word to translate (prominent) -->
                 <TextView
                     android:id="@+id/wordSourceText"
                     android:layout_width="wrap_content"
@@ -82,7 +82,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Campo di input dove l'utente scrive la traduzione -->
+        <!-- Input field where user types translation -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/inputLayout"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -102,7 +102,7 @@
                 android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Messaggio di Feedback (Verde se corretto / Rosso con soluzione se errato) -->
+        <!-- Feedback message (Green if correct / Red with solution if wrong) -->
         <TextView
             android:id="@+id/feedbackText"
             android:layout_width="match_parent"
@@ -116,7 +116,7 @@
             tools:text="Correct! Well done!"
             tools:visibility="visible" />
 
-        <!-- Pulsante di Azione: "Verifica" / "Prossima carta" -->
+        <!-- Action Button: "Check" / "Next card" -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/actionButton"
             android:layout_width="match_parent"

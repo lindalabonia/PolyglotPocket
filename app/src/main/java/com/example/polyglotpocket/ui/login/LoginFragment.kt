@@ -142,6 +142,11 @@ class LoginFragment : Fragment() {
 
     /** Sign in with Google via Credential Manager (button flow), with a nonce. */
     private fun signInWithGoogle() {
+        if (BuildConfig.GOOGLE_WEB_CLIENT_ID.isBlank()) {
+            Toast.makeText(requireContext(), "Google Sign-In is not configured", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val rawNonce = UUID.randomUUID().toString()
         val option = GetSignInWithGoogleOption.Builder(BuildConfig.GOOGLE_WEB_CLIENT_ID)
             .setNonce(sha256(rawNonce))
