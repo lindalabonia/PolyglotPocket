@@ -32,6 +32,11 @@
         <action
             android:id="@+id/action_home_to_apitest"
             app:destination="@id/apiTestFragment" />
+
+        <!-- Add word from photo (REQ. 6) -->
+        <action
+            android:id="@+id/action_home_to_photo"
+            app:destination="@id/photoCaptureFragment" />
     </fragment>
 
     <!-- La nuova schermata di allenamento -->
@@ -46,5 +51,25 @@
         android:name="com.example.polyglotpocket.ui.apitest.ApiTestFragment"
         android:label="@string/apitest_title"
         tools:layout="@layout/fragment_api_test" />
+
+    <!-- Photo flow (REQ. 6): capture/pick -> detect -> select -> translate + add -->
+    <fragment
+        android:id="@+id/photoCaptureFragment"
+        android:name="com.example.polyglotpocket.ui.photo.PhotoCaptureFragment"
+        android:label="@string/photo_title"
+        tools:layout="@layout/fragment_photo_capture">
+        <argument
+            android:name="targetLang"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_photo_capture_to_result"
+            app:destination="@id/photoResultFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/photoResultFragment"
+        android:name="com.example.polyglotpocket.ui.photo.PhotoResultFragment"
+        android:label="@string/photo_title"
+        tools:layout="@layout/fragment_photo_result" />
 
 </navigation>

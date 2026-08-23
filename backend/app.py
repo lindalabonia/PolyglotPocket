@@ -6,6 +6,7 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 
 import jwt
+import requests
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from flask import Flask, jsonify, request
@@ -29,7 +30,17 @@ if not SECRET_KEY:
             "SECRET_KEY is not set. Set it in the WSGI file, or POLYGLOT_DEV=1 for local dev."
         )
 GOOGLE_WEB_CLIENT_ID = os.environ.get("GOOGLE_WEB_CLIENT_ID", "")
+VISION_API_KEY = os.environ.get("GOOGLE_CLOUD_VISION_API_KEY", "")
 TOKEN_TTL = timedelta(days=7)
+
+# Our 3-letter target codes -> MyMemory 2-letter codes.
+MYMEMORY_LANG = {"spa": "es", "fra": "fr", "por": "pt", "nld": "nl", "arb": "ar"}
+
+# Themes available in the DB (a photo card must use one of these).
+KNOWN_THEMES = {
+    "food", "animals", "plants", "body", "objects", "places",
+    "people", "materials", "time", "money", "emotions",
+}
 
 ph = PasswordHasher()
 
@@ -211,7 +222,7 @@ def cards():
             """
             SELECT id, word_source, word_target, theme
             FROM cards
-            WHERE target_lang = ? AND owner_id IS NULL
+            WHERE target_lang = ?
             ORDER BY RANDOM()
             LIMIT ?
             """,
@@ -315,6 +326,167 @@ def save_session():
         con.close()
 
     return jsonify({"status": "ok", "session_id": session_id}), 201
+
+
+# --- Photo -> card (REQ. 6 image processing + REQ. 8 Vision + REQ. 1 MyMemory) ---
+
+# Drop weak detections so the overlay is not cluttered with unlikely guesses.
+MIN_OBJECT_SCORE = 0.4
+# Cap the words translated in a single batch request.
+MAX_TRANSLATE = 20
+
+
+def vision_localize_objects(image_b64):
+    """Objects found in a base64 image via Cloud Vision object localization.
+    Returns a list of {name, score, x, y, w, h} with the box normalized to 0..1."""
+    url = f"https://vision.googleapis.com/v1/images:annotate?key={VISION_API_KEY}"
+    body = {
+        "requests": [{
+            "image": {"content": image_b64},
+            "features": [{"type": "OBJECT_LOCALIZATION", "maxResults": MAX_TRANSLATE}],
+        }]
+    }
+    resp = requests.post(url, json=body, timeout=20)
+    resp.raise_for_status()
+    annotations = resp.json()["responses"][0].get("localizedObjectAnnotations", [])
+
+    objects = []
+    for ann in annotations:
+        if ann.get("score", 0) < MIN_OBJECT_SCORE:
+            continue
+        # Vision omits a vertex coordinate when it is 0, so default the missing ones.
+        verts = ann["boundingPoly"]["normalizedVertices"]
+        xs = [v.get("x", 0.0) for v in verts]
+        ys = [v.get("y", 0.0) for v in verts]
+        x, y = min(xs), min(ys)
+        objects.append({
+            "name": ann["name"],
+            "score": ann["score"],
+            "x": x,
+            "y": y,
+            "w": max(xs) - x,
+            "h": max(ys) - y,
+        })
+    return objects
+
+
+def translate_en(text, target_lang):
+    """Translate English text into the target language via MyMemory (public API)."""
+    code = MYMEMORY_LANG.get(target_lang, target_lang)
+    resp = requests.get(
+        "https://api.mymemory.translated.net/get",
+        params={"q": text, "langpair": f"en|{code}"},
+        timeout=20,
+    )
+    resp.raise_for_status()
+    return resp.json()["responseData"]["translatedText"]
+
+
+@app.post("/photo/detect")
+def photo_detect():
+    """Locate objects in the photo (does NOT translate or save). Each object has
+    its English name and a bounding box (0..1) for the app to draw over the image."""
+    uid = uid_from_request()
+    if uid is None:
+        return jsonify({"error": "unauthorized"}), 401
+
+    data = request.get_json(silent=True) or {}
+    image_b64 = data.get("image") or ""
+    if not image_b64:
+        return jsonify({"error": "missing 'image'"}), 400
+    if not VISION_API_KEY:
+        return jsonify({"error": "vision not configured"}), 500
+
+    try:
+        objects = vision_localize_objects(image_b64)
+    except Exception:
+        return jsonify({"error": "vision request failed"}), 502
+
+    return jsonify({"objects": objects})
+
+
+@app.post("/photo/translate")
+def photo_translate():
+    """Translate a batch of English words and flag which ones the user's pool
+    already has. Used after the user picks boxes from a detected photo."""
+    uid = uid_from_request()
+    if uid is None:
+        return jsonify({"error": "unauthorized"}), 401
+
+    data = request.get_json(silent=True) or {}
+    words = data.get("words") or []
+    target_lang = (data.get("target_lang") or "").strip()
+    if not isinstance(words, list) or not words or not target_lang:
+        return jsonify({"error": "missing 'words' or 'target_lang'"}), 400
+
+    # De-duplicate while keeping order, so the same object picked twice is one call.
+    seen = []
+    for w in words:
+        w = (w or "").strip().lower()
+        if w and w not in seen:
+            seen.append(w)
+        if len(seen) >= MAX_TRANSLATE:
+            break
+
+    con = get_db()
+    try:
+        results = []
+        for word_source in seen:
+            try:
+                word_target = translate_en(word_source, target_lang)
+            except Exception:
+                return jsonify({"error": "translation failed"}), 502
+            existing = con.execute(
+                "SELECT id FROM cards WHERE target_lang = ? AND word_source = ? AND word_target = ?",
+                (target_lang, word_source, word_target),
+            ).fetchone()
+            results.append({
+                "word_source": word_source,
+                "word_target": word_target,
+                "exists": existing is not None,
+            })
+    finally:
+        con.close()
+
+    return jsonify({"results": results})
+
+
+@app.post("/cards")
+def create_card():
+    """Save a personal card (from a photo) with the theme chosen by the user."""
+    uid = uid_from_request()
+    if uid is None:
+        return jsonify({"error": "unauthorized"}), 401
+
+    data = request.get_json(silent=True) or {}
+    word_source = (data.get("word_source") or "").strip().lower()
+    word_target = (data.get("word_target") or "").strip()
+    target_lang = (data.get("target_lang") or "").strip()
+    theme = (data.get("theme") or "").strip()
+    if not word_source or not word_target or not target_lang:
+        return jsonify({"error": "missing card fields"}), 400
+    if theme not in KNOWN_THEMES:
+        return jsonify({"error": "unknown theme"}), 400
+
+    con = get_db()
+    try:
+        existing = con.execute(
+            "SELECT id FROM cards WHERE target_lang = ? AND word_source = ? AND word_target = ?",
+            (target_lang, word_source, word_target),
+        ).fetchone()
+        created = existing is None
+        if created:
+            con.execute(
+                "INSERT INTO cards (owner_id, source_lang, target_lang, word_source, word_target, theme, origin) "
+                "VALUES (?, 'eng', ?, ?, ?, ?, 'photo')",
+                (uid, target_lang, word_source, word_target, theme),
+            )
+            con.commit()
+    finally:
+        con.close()
+
+    return jsonify({"created": created}), (201 if created else 200)
+
 
 if __name__ == "__main__":
     app.run(debug=True)

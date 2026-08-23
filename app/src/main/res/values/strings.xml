@@ -47,6 +47,27 @@
     <string name="training_summary_result">You finished the training:\n✅ Correct: %1$d\n❌ Wrong: %2$d</string>
     <string name="training_back_to_home">Back to Home</string>
 
+    <!-- Add word from photo (REQ. 6) -->
+    <string name="photo_title">Add word from photo</string>
+    <string name="photo_take_picture">Take picture</string>
+    <string name="photo_choose_library">Choose from library</string>
+    <string name="photo_capture">Capture</string>
+    <string name="photo_permission_needed">Camera permission is needed to take a picture</string>
+    <string name="photo_no_objects">No objects were recognized. Try another picture.</string>
+    <string name="photo_detecting">Looking for objects…</string>
+    <string name="photo_translating">Translating…</string>
+    <string name="photo_pick_hint">Tap the objects you want to translate, then press OK</string>
+    <string name="photo_ok">OK</string>
+    <string name="photo_select_at_least_one">Select at least one object first</string>
+    <string name="photo_scan_another">Scan another picture</string>
+    <string name="photo_go_back">Go back</string>
+    <string name="photo_theme_label">Theme</string>
+    <string name="photo_choose_theme">Choose a theme</string>
+    <string name="photo_add_to_cards">Add to your cards</string>
+    <string name="photo_add">Add</string>
+    <string name="photo_added">Added ✓</string>
+    <string name="photo_already_saved">Already in your cards</string>
+
     <!-- Side menu -->
     <string name="menu_logout">Log out</string>
 

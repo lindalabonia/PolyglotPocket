@@ -69,7 +69,7 @@ class HomeFragment : Fragment() {
         binding.trainRandomButton.setOnClickListener { startTraining("random") }
         binding.trainErrorsButton.setOnClickListener { startTraining("errors") }
         binding.studyHereButton.setOnClickListener { comingSoon() }
-        binding.addPhotoButton.setOnClickListener { comingSoon() }
+        binding.addPhotoButton.setOnClickListener { startPhoto() }
         binding.statsButton.setOnClickListener { comingSoon() }
         binding.testBackendButton.setOnClickListener {
             findNavController().navigate(R.id.action_home_to_apitest)
@@ -86,6 +86,19 @@ class HomeFragment : Fragment() {
         findNavController().navigate(
             R.id.action_home_to_training,
             bundleOf("targetLang" to lang, "mode" to mode)
+        )
+    }
+
+    /** Open the photo flow only if a language is selected (needed to translate). */
+    private fun startPhoto() {
+        val lang = selectedLanguageCode
+        if (lang == null) {
+            Toast.makeText(requireContext(), R.string.home_select_language_first, Toast.LENGTH_SHORT).show()
+            return
+        }
+        findNavController().navigate(
+            R.id.action_home_to_photo,
+            bundleOf("targetLang" to lang)
         )
     }
 

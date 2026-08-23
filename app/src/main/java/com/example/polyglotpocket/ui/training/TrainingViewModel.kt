@@ -81,16 +81,16 @@ class TrainingViewModel(app: Application) : AndroidViewModel(app) {
 
         viewModelScope.launch {
             try {
-                // Se la modalità è "errors", scarichiamo solo gli errori passati (serve il token)
+                val token = TokenStore.get(getApplication())
+                if (token == null) {
+                    _state.value = State.Error("Session expired, please log in again.")
+                    return@launch
+                }
+                // "errors" = only past mistakes; both modes include the user's own photo cards.
                 cards = if (mode == "errors") {
-                    val token = TokenStore.get(getApplication())
-                    if (token == null) {
-                        _state.value = State.Error("Session expired, please log in again.")
-                        return@launch
-                    }
                     BackendApi.getErrorCards(token, targetLang, numCards)
                 } else {
-                    BackendApi.getCards(targetLang, numCards)
+                    BackendApi.getCards(targetLang, numCards, token)
                 }
 
                 if (cards.isEmpty()) {
