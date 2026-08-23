@@ -180,7 +180,6 @@ def me():
 # --- Read-only endpoints ------------------------------------------------
 
 @app.get("/")
-@app.get("/ping")
 def ping():
     return jsonify({"status": "ok"})
 

@@ -89,10 +89,10 @@ class TrainingViewModel(app: Application) : AndroidViewModel(app) {
                         BackendApi.getErrorCards(token, targetLang, numCards)
                     }
                     "gps" -> {
-                        BackendApi.getCards(targetLang, numCards, theme = theme, token)
+                        BackendApi.getCards(targetLang, numCards, theme = theme)
                     }
                     else -> {
-                        BackendApi.getCards(targetLang, numCards, token)
+                        BackendApi.getCards(targetLang, numCards)
                     }
                 }
 
