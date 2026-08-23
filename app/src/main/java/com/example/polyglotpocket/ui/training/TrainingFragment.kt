@@ -2,6 +2,11 @@ package com.example.polyglotpocket.ui.training
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Typeface
+import android.text.Spannable
+import android.text.SpannableStringBuilder
+import android.text.style.RelativeSizeSpan
+import android.text.style.StyleSpan
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -10,8 +15,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import androidx.activity.OnBackPressedCallback
+import androidx.core.content.ContextCompat
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
@@ -35,6 +43,12 @@ class TrainingFragment : Fragment(), SensorEventListener {
     private var gyroscopeSensor: Sensor? = null
     private var lastRotationTriggerTime = 0L
     private var canUseGyroscopeToNext = false
+
+    // Display name of the study language, for the "Translate to ..." hint.
+    private var langDisplay = ""
+
+    // True once the session is complete (so exiting no longer needs a warning).
+    private var sessionOver = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -67,6 +81,7 @@ class TrainingFragment : Fragment(), SensorEventListener {
                 }
 
                 is TrainingViewModel.State.Finished -> {
+                    sessionOver = true
                     showSummaryDialog(state)
                 }
 
@@ -80,6 +95,7 @@ class TrainingFragment : Fragment(), SensorEventListener {
 
         // Language, mode and optional theme (from GPS) passed from the Home screen.
         val targetLang = arguments?.getString("targetLang") ?: "spa"
+        langDisplay = languageName(targetLang)
         val mode = arguments?.getString("mode") ?: "random"
         val theme = arguments?.getString("theme")
 
@@ -88,22 +104,51 @@ class TrainingFragment : Fragment(), SensorEventListener {
         if (!viewModel.hasStarted) {
             showCardCountDialog(mode, targetLang, theme)
         }
+
+        // Warn before leaving an unfinished session (it is only saved at the end).
+        requireActivity().onBackPressedDispatcher.addCallback(
+            viewLifecycleOwner,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (viewModel.hasStarted && !sessionOver) {
+                        confirmExit()
+                    } else {
+                        isEnabled = false
+                        requireActivity().onBackPressedDispatcher.onBackPressed()
+                    }
+                }
+            }
+        )
+    }
+
+    /** Confirm before leaving mid-session, since progress would be lost. */
+    private fun confirmExit() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setMessage(R.string.training_exit_message)
+            .setPositiveButton(R.string.training_exit_leave) { _, _ -> findNavController().popBackStack() }
+            .setNegativeButton(R.string.training_exit_continue, null)
+            .show()
     }
 
     /** Let the user pick the number of cards before the session starts. */
     private fun showCardCountDialog(mode: String, targetLang: String, theme: String?) {
-        val counts = intArrayOf(2, 5, 10, 20)
-        val labels = counts.map { getString(R.string.training_card_count_option, it) }.toTypedArray()
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.training_card_count_title)
-            .setItems(labels) { _, which ->
-                viewModel.startTraining(mode = mode, targetLang = targetLang, numCards = counts[which], theme = theme)
-            }
+        val view = layoutInflater.inflate(R.layout.dialog_card_count, null)
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(view)
             .setCancelable(false)
             .setNegativeButton(R.string.training_back_to_home) { _, _ ->
                 findNavController().popBackStack()
             }
-            .show()
+            .create()
+
+        val options = mapOf(R.id.count2 to 2, R.id.count5 to 5, R.id.count10 to 10, R.id.count20 to 20)
+        for ((id, count) in options) {
+            view.findViewById<View>(id).setOnClickListener {
+                dialog.dismiss()
+                viewModel.startTraining(mode = mode, targetLang = targetLang, numCards = count, theme = theme)
+            }
+        }
+        dialog.show()
     }
 
     private fun renderQuestion(state: TrainingViewModel.State.Question) {
@@ -113,7 +158,7 @@ class TrainingFragment : Fragment(), SensorEventListener {
             state.totalCards
         )
 
-        binding.themeChip.text = state.card.theme
+        binding.hintText.text = getString(R.string.training_hint_lang, langDisplay)
         binding.wordSourceText.text = state.card.wordSource
 
         val feedback = state.feedback
@@ -121,6 +166,8 @@ class TrainingFragment : Fragment(), SensorEventListener {
         if (feedback == null) {
             // State 1: Waiting for user answer
             canUseGyroscopeToNext = false
+            binding.flashcardView.setCardBackgroundColor(Color.TRANSPARENT)
+            binding.flashcardView.strokeWidth = 0
             binding.inputAnswer.isEnabled = true
             binding.inputAnswer.text?.clear()
             binding.feedbackText.visibility = View.INVISIBLE
@@ -135,13 +182,38 @@ class TrainingFragment : Fragment(), SensorEventListener {
             binding.inputAnswer.isEnabled = false
             binding.feedbackText.visibility = View.VISIBLE
 
+            val strokePx = (2.5f * resources.displayMetrics.density).toInt()
             if (feedback.isCorrect) {
                 binding.feedbackText.text = getString(R.string.training_feedback_correct)
                 binding.feedbackText.setTextColor(Color.parseColor("#2E7D32"))
+                binding.flashcardView.setCardBackgroundColor(
+                    ContextCompat.getColor(requireContext(), R.color.pp_feedback_green_bg)
+                )
+                binding.flashcardView.strokeWidth = strokePx
+                binding.flashcardView.setStrokeColor(
+                    ContextCompat.getColor(requireContext(), R.color.pp_feedback_green_fg)
+                )
             } else {
-                binding.feedbackText.text =
-                    getString(R.string.training_feedback_wrong, feedback.correctAnswer)
+                // "Wrong ❌" then the correct translation enlarged.
+                val answer = feedback.correctAnswer
+                val text = SpannableStringBuilder()
+                val titleStart = text.length
+                text.append(getString(R.string.training_feedback_wrong_title))
+                text.setSpan(StyleSpan(Typeface.BOLD), titleStart, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                text.append("\n").append(getString(R.string.training_feedback_wrong_prefix))
+                val start = text.length
+                text.append(answer)
+                text.setSpan(RelativeSizeSpan(1.6f), start, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                text.setSpan(StyleSpan(Typeface.BOLD), start, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                binding.feedbackText.text = text
                 binding.feedbackText.setTextColor(Color.parseColor("#C62828"))
+                binding.flashcardView.setCardBackgroundColor(
+                    ContextCompat.getColor(requireContext(), R.color.pp_feedback_red_bg)
+                )
+                binding.flashcardView.strokeWidth = strokePx
+                binding.flashcardView.setStrokeColor(
+                    ContextCompat.getColor(requireContext(), R.color.pp_feedback_red_fg)
+                )
             }
 
             val isLastCard = state.currentIndex + 1 == state.totalCards
@@ -158,14 +230,25 @@ class TrainingFragment : Fragment(), SensorEventListener {
     }
 
     private fun showSummaryDialog(state: TrainingViewModel.State.Finished) {
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.training_summary_title)
-            .setMessage(getString(R.string.training_summary_result, state.correct, state.wrong))
+        val view = layoutInflater.inflate(R.layout.dialog_summary, null)
+        view.findViewById<TextView>(R.id.summaryCorrect).text = state.correct.toString()
+        view.findViewById<TextView>(R.id.summaryWrong).text = state.wrong.toString()
+        MaterialAlertDialogBuilder(requireContext())
+            .setView(view)
+            .setCancelable(false)
             .setPositiveButton(R.string.training_back_to_home) { _, _ ->
                 findNavController().popBackStack()
             }
-            .setCancelable(false)
             .show()
+    }
+
+    private fun languageName(code: String): String = when (code) {
+        "spa" -> "Spanish"
+        "fra" -> "French"
+        "por" -> "Portuguese"
+        "nld" -> "Dutch"
+        "arb" -> "Arabic"
+        else -> code
     }
 
     override fun onDestroyView() {

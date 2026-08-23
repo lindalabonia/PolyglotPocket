@@ -16,6 +16,9 @@
         <item name="colorOnSurfaceVariant">@color/pp_on_surface_variant</item>
         <item name="colorOutline">@color/pp_outline</item>
         <item name="colorOutlineVariant">@color/pp_outline</item>
+        <!-- One font across the whole app -->
+        <item name="android:fontFamily">@font/outfit</item>
+        <item name="fontFamily">@font/outfit</item>
     </style>
 
     <style name="Theme.PolyglotPocket" parent="Base.Theme.PolyglotPocket" />

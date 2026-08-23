@@ -52,8 +52,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onSupportNavigateUp(): Boolean =
-        navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
+    override fun onSupportNavigateUp(): Boolean {
+        // On a sub-screen, let a fragment's back callback (e.g. training's
+        // "leave?" prompt) handle the Up arrow too. Home keeps the drawer toggle.
+        if (navController.currentDestination?.id != R.id.homeFragment &&
+            onBackPressedDispatcher.hasEnabledCallbacks()
+        ) {
+            onBackPressedDispatcher.onBackPressed()
+            return true
+        }
+        return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
+    }
 
     private fun onDrawerItem(item: MenuItem): Boolean {
         when (item.itemId) {

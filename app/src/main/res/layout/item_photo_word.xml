@@ -7,17 +7,38 @@
     android:background="@drawable/bg_word_card"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:paddingHorizontal="14dp"
+    android:paddingHorizontal="16dp"
     android:paddingVertical="12dp">
 
-    <TextView
-        android:id="@+id/wordText"
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:textSize="17sp"
-        android:textStyle="bold"
-        android:textColor="?attr/colorOnSurface" />
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/wordSource"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textAllCaps="true"
+            android:letterSpacing="0.06"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            tools:text="house"
+            xmlns:tools="http://schemas.android.com/tools" />
+
+        <TextView
+            android:id="@+id/wordTarget"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorOnSurface"
+            tools:text="casa"
+            xmlns:tools="http://schemas.android.com/tools" />
+    </LinearLayout>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/addButton"
@@ -25,7 +46,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:text="@string/photo_add_to_cards"
+        android:text="@string/photo_add"
         app:cornerRadius="20dp" />
 
     <TextView

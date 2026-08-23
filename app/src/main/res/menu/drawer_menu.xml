@@ -3,9 +3,11 @@
     <group android:checkableBehavior="none">
         <item
             android:id="@+id/menu_statistics"
+            android:icon="@drawable/ic_stats"
             android:title="@string/home_stats" />
         <item
             android:id="@+id/menu_logout"
+            android:icon="@drawable/ic_logout"
             android:title="@string/menu_logout" />
     </group>
 </menu>

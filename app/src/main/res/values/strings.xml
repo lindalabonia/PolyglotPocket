@@ -30,7 +30,6 @@
     <string name="home_add_photo">Add word from photo</string>
     <string name="home_add_photo_sub">Snap an object, get a flashcard</string>
     <string name="home_stats">Statistics</string>
-    <string name="home_test_backend">Test backend (debug)</string>
 
     <!-- Backend test -->
     <string name="apitest_title">Test backend</string>
@@ -40,27 +39,26 @@
 
     <!-- Training -->
     <string name="training_title">Training</string>
-    <string name="training_hint">Translate the word</string>
+    <string name="training_hint_lang">Translate to %1$s</string>
+    <string name="training_feedback_wrong_title">Wrong ❌</string>
+    <string name="training_feedback_wrong_prefix">Correct answer: </string>
     <string name="training_card_count_title">How many cards?</string>
-    <string name="training_card_count_option">%1$d cards</string>
     <string name="training_progress">Card %1$d of %2$d</string>
     <string name="training_input_hint">Type the translation...</string>
     <string name="training_btn_check">Check</string>
     <string name="training_btn_next">Next card</string>
     <string name="training_btn_finish">Finish training</string>
     <string name="training_feedback_correct">Correct! Well done! 🎉</string>
-    <string name="training_feedback_wrong">Not correct. The answer was: %1$s</string>
     <string name="training_summary_title">Session complete!</string>
-    <string name="training_summary_result">You finished the training:\n✅ Correct: %1$d\n❌ Wrong: %2$d</string>
     <string name="training_back_to_home">Back to Home</string>
+    <string name="training_exit_message">If you leave now, your training won\'t be saved.</string>
+    <string name="training_exit_leave">Leave anyway</string>
+    <string name="training_exit_continue">Continue training</string>
 
     <!-- Add word from photo (REQ. 6) -->
     <string name="photo_title">Add word from photo</string>
     <string name="photo_intro_title">Turn objects into flashcards</string>
-    <string name="photo_intro_sub">Point your camera at things around you and save their names in your study language.</string>
-    <string name="photo_step_snap">Snap or pick a photo</string>
-    <string name="photo_step_detect">We find the objects and their names</string>
-    <string name="photo_step_save">Save the translations to your deck</string>
+    <string name="photo_intro_sub">Snap a photo, learn a new word, then add it to the shared cards to help everyone learn.</string>
     <string name="photo_take_picture">Take picture</string>
     <string name="photo_choose_library">Choose from library</string>
     <string name="photo_capture">Capture</string>
@@ -73,12 +71,10 @@
     <string name="photo_select_at_least_one">Select at least one object first</string>
     <string name="photo_scan_another">Scan another picture</string>
     <string name="photo_go_back">Go back</string>
-    <string name="photo_theme_label">Theme</string>
     <string name="photo_choose_theme">Choose a theme</string>
-    <string name="photo_add_to_cards">Add to your cards</string>
     <string name="photo_add">Add</string>
     <string name="photo_added">Added ✓</string>
-    <string name="photo_already_saved">Already in your cards</string>
+    <string name="photo_already_saved">Already in shared cards</string>
 
     <!-- Side menu -->
     <string name="menu_logout">Log out</string>
@@ -88,9 +84,7 @@
     <!-- GPS Mode -->
     <string name="gps_detecting">Detecting your location and nearby context...</string>
     <string name="gps_permission_required">Location permission is required for the Study Here mode.</string>
-    <string name="gps_location_not_found">Could not obtain GPS location. Make sure GPS is enabled.</string>
     <string name="gps_context_dialog_title">Study Here</string>
-    <string name="gps_context_dialog_message">Detected place: %1$s\nTheme: %2$s\n\nWould you like to start training with vocabulary for this context?</string>
     <string name="gps_context_dialog_prompt">Would you like to start training with vocabulary for this context?</string>
     <string name="gps_btn_start">Start Training</string>
 </resources>

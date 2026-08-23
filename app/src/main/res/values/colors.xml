@@ -24,4 +24,11 @@
     <color name="pp_tint_green_fg">#3E9B5B</color>
     <color name="pp_tint_blue_bg">#E2EEFB</color>
     <color name="pp_tint_blue_fg">#2F79C7</color>
+    <color name="pp_tint_red_bg">#FBE4E4</color>
+
+    <!-- Training feedback (stronger, more evident) -->
+    <color name="pp_feedback_green_bg">#BDE8CA</color>
+    <color name="pp_feedback_green_fg">#2E9E57</color>
+    <color name="pp_feedback_red_bg">#F6C7C7</color>
+    <color name="pp_feedback_red_fg">#CE4B4B</color>
 </resources>

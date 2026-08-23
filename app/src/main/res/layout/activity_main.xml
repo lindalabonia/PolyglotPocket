@@ -18,6 +18,7 @@
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
             app:navigationIconTint="?attr/colorOnPrimary"
+            app:titleTextAppearance="@style/ToolbarTitle"
             app:titleTextColor="?attr/colorOnPrimary" />
 
         <androidx.fragment.app.FragmentContainerView

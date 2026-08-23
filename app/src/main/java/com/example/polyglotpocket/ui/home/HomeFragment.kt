@@ -7,9 +7,12 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.os.bundleOf
@@ -226,28 +229,30 @@ class HomeFragment : Fragment() {
     }
 
     private fun showLanguageSelectionDialog() {
-        val codes = languageNames.keys.toList()
-        val displayOptions = codes.map { languageNames[it] ?: it }.toTypedArray()
-        val currentIndex = selectedLanguageCode?.let { codes.indexOf(it) } ?: -1
+        val view = layoutInflater.inflate(R.layout.dialog_language, null)
+        val container = view.findViewById<LinearLayout>(R.id.languageList)
+        val prefs = requireContext().getSharedPreferences("polyglot_prefs", Context.MODE_PRIVATE)
 
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.home_select_language_title)
-            .setSingleChoiceItems(displayOptions, currentIndex) { dialog, which ->
-                selectedLanguageCode = codes[which]
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(view)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
 
-                // Save selected language to SharedPreferences
-                val prefs = requireContext().getSharedPreferences("polyglot_prefs", Context.MODE_PRIVATE)
-                prefs.edit { putString("target_lang", selectedLanguageCode) }
-
+        for ((code, label) in languageNames) {
+            val row = layoutInflater.inflate(R.layout.item_language_row, container, false)
+            row.findViewById<TextView>(R.id.langName).text = label
+            row.findViewById<ImageView>(R.id.langRadio).setImageResource(
+                if (code == selectedLanguageCode) R.drawable.ic_radio_on else R.drawable.ic_radio_off
+            )
+            row.setOnClickListener {
+                selectedLanguageCode = code
+                prefs.edit { putString("target_lang", code) }
                 updateLanguageDisplay()
                 dialog.dismiss()
             }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
-    }
-
-    private fun comingSoon() {
-        Toast.makeText(requireContext(), R.string.coming_soon, Toast.LENGTH_SHORT).show()
+            container.addView(row)
+        }
+        dialog.show()
     }
 
     override fun onDestroyView() {

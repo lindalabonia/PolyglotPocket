@@ -37,36 +37,15 @@
             android:textSize="14sp"
             android:textColor="?attr/colorOnSurfaceVariant" />
 
-        <!-- How it works -->
-        <LinearLayout
+        <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+
+        <!-- Visual explanation: photo -> detected object -> saved card -->
+        <ImageView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:orientation="vertical"
-            android:background="@drawable/bg_word_card"
-            android:padding="18dp">
-
-            <LinearLayout style="@style/StepRow">
-                <FrameLayout style="@style/StepIconBox" android:backgroundTint="@color/pp_tint_blue_bg">
-                    <ImageView style="@style/StepIcon" android:src="@drawable/ic_camera" app:tint="@color/pp_tint_blue_fg" />
-                </FrameLayout>
-                <TextView style="@style/StepText" android:text="@string/photo_step_snap" />
-            </LinearLayout>
-
-            <LinearLayout style="@style/StepRow" android:layout_marginTop="14dp">
-                <FrameLayout style="@style/StepIconBox" android:backgroundTint="@color/pp_tint_violet_bg">
-                    <ImageView style="@style/StepIcon" android:src="@drawable/ic_scan" app:tint="@color/pp_tint_violet_fg" />
-                </FrameLayout>
-                <TextView style="@style/StepText" android:text="@string/photo_step_detect" />
-            </LinearLayout>
-
-            <LinearLayout style="@style/StepRow" android:layout_marginTop="14dp">
-                <FrameLayout style="@style/StepIconBox" android:backgroundTint="@color/pp_tint_green_bg">
-                    <ImageView style="@style/StepIcon" android:src="@drawable/ic_cards" app:tint="@color/pp_tint_green_fg" />
-                </FrameLayout>
-                <TextView style="@style/StepText" android:text="@string/photo_step_save" />
-            </LinearLayout>
-        </LinearLayout>
+            android:adjustViewBounds="true"
+            android:src="@drawable/tutorial_photo"
+            android:contentDescription="@string/photo_intro_sub" />
 
         <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
 
