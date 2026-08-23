@@ -23,18 +23,18 @@
         android:label="@string/app_name"
         tools:layout="@layout/fragment_home">
 
-        <!-- Azione per aprire la schermata di Allenamento -->
+        <!-- Action to open training screen -->
         <action
             android:id="@+id/action_home_to_training"
             app:destination="@id/trainingFragment" />
 
-        <!-- Azione di debug per il test delle API -->
+        <!-- Debug action for API testing -->
         <action
             android:id="@+id/action_home_to_apitest"
             app:destination="@id/apiTestFragment" />
     </fragment>
 
-    <!-- La nuova schermata di allenamento -->
+    <!-- Training screen -->
     <fragment
         android:id="@+id/trainingFragment"
         android:name="com.example.polyglotpocket.ui.training.TrainingFragment"
