@@ -14,15 +14,21 @@
 
     <!-- Home -->
     <string name="home_title">Home</string>
-    <string name="home_welcome">Hi, %1$s!</string>
+    <string name="home_welcome">Hi, %1$s! 👋</string>
+    <string name="home_welcome_sub">Ready for today\'s words?</string>
     <string name="home_target_lang_label">Study language</string>
+    <string name="home_change">Change</string>
     <string name="home_select_language_title">Choose language</string>
     <string name="home_language_placeholder">Select a language</string>
     <string name="home_select_language_first">Please select a language first</string>
     <string name="home_train_random">Random training</string>
+    <string name="home_train_random_sub">Shuffle cards from the catalog</string>
     <string name="home_train_errors">Review your mistakes</string>
-    <string name="home_study_here">Study here (GPS)</string>
+    <string name="home_train_errors_sub">Practice what you got wrong</string>
+    <string name="home_study_here">Study here</string>
+    <string name="home_study_here_sub">Learn words about where you are</string>
     <string name="home_add_photo">Add word from photo</string>
+    <string name="home_add_photo_sub">Snap an object, get a flashcard</string>
     <string name="home_stats">Statistics</string>
     <string name="home_test_backend">Test backend (debug)</string>
 
@@ -34,6 +40,7 @@
 
     <!-- Training -->
     <string name="training_title">Training</string>
+    <string name="training_hint">Translate the word</string>
     <string name="training_card_count_title">How many cards?</string>
     <string name="training_card_count_option">%1$d cards</string>
     <string name="training_progress">Card %1$d of %2$d</string>
@@ -49,6 +56,11 @@
 
     <!-- Add word from photo (REQ. 6) -->
     <string name="photo_title">Add word from photo</string>
+    <string name="photo_intro_title">Turn objects into flashcards</string>
+    <string name="photo_intro_sub">Point your camera at things around you and save their names in your study language.</string>
+    <string name="photo_step_snap">Snap or pick a photo</string>
+    <string name="photo_step_detect">We find the objects and their names</string>
+    <string name="photo_step_save">Save the translations to your deck</string>
     <string name="photo_take_picture">Take picture</string>
     <string name="photo_choose_library">Choose from library</string>
     <string name="photo_capture">Capture</string>
@@ -77,7 +89,7 @@
     <string name="gps_detecting">Detecting your location and nearby context...</string>
     <string name="gps_permission_required">Location permission is required for the Study Here mode.</string>
     <string name="gps_location_not_found">Could not obtain GPS location. Make sure GPS is enabled.</string>
-    <string name="gps_context_dialog_title">📍 Study Here (GPS)</string>
+    <string name="gps_context_dialog_title">Study Here</string>
     <string name="gps_context_dialog_message">Detected place: %1$s\nTheme: %2$s\n\nWould you like to start training with vocabulary for this context?</string>
     <string name="gps_context_dialog_prompt">Would you like to start training with vocabulary for this context?</string>
     <string name="gps_btn_start">Start Training</string>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand palette (dark) -->
+    <color name="pp_primary">#B7AEFF</color>
+    <color name="pp_on_primary">#241663</color>
+    <color name="pp_primary_container">#45379B</color>
+    <color name="pp_on_primary_container">#E7E1FF</color>
+    <color name="pp_background">#131118</color>
+    <color name="pp_surface">#1E1C27</color>
+    <color name="pp_surface_variant">#2A2735</color>
+    <color name="pp_on_surface">#ECEAF5</color>
+    <color name="pp_on_surface_variant">#A9A6B8</color>
+    <color name="pp_outline">#322F40</color>
+
+    <!-- Per-feature icon tints (dark) -->
+    <color name="pp_tint_violet_bg">#2A2550</color>
+    <color name="pp_tint_violet_fg">#C4BCFF</color>
+    <color name="pp_tint_amber_bg">#3A2E19</color>
+    <color name="pp_tint_amber_fg">#E7B15A</color>
+    <color name="pp_tint_green_bg">#1E3326</color>
+    <color name="pp_tint_green_fg">#7FCF97</color>
+    <color name="pp_tint_blue_bg">#17293D</color>
+    <color name="pp_tint_blue_fg">#78B4EA</color>
+</resources>

@@ -10,30 +10,38 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="20dp">
 
         <TextView
             android:id="@+id/welcomeText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:textSize="24sp"
+            android:textSize="25sp"
             android:textStyle="bold"
-            tools:text="Hi, User!"
-            xmlns:tools="http://schemas.android.com/tools" />
+            android:textColor="?attr/colorOnSurface"
+            tools:text="Hi, Linda! 👋" />
 
-        <!-- Card Selettore Lingua di Studio -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:text="@string/home_welcome_sub"
+            android:textSize="14sp"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <!-- Language selector -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/languageCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
+            android:layout_marginTop="20dp"
             android:clickable="true"
             android:focusable="true"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="?attr/colorSurface"
             app:strokeWidth="1dp"
-            app:strokeColor="?attr/colorPrimary">
+            app:strokeColor="?attr/colorOutline">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -52,61 +60,128 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/home_target_lang_label"
-                        android:textSize="12sp"
-                        android:textColor="?android:attr/textColorSecondary" />
+                        android:textAllCaps="true"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.06"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
 
                     <TextView
                         android:id="@+id/selectedLanguageText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:layout_marginTop="2dp"
-                        tools:text="🇪🇸 Spagnolo (spa)" />
+                        android:textColor="?attr/colorOnSurface"
+                        tools:text="🇪🇸 Spanish" />
                 </LinearLayout>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Change ▾"
+                    android:text="@string/home_change"
                     android:textStyle="bold"
+                    android:textSize="14sp"
                     android:textColor="?attr/colorPrimary" />
 
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_marginStart="2dp"
+                    android:src="@drawable/ic_chevron_right"
+                    android:contentDescription="@string/home_change"
+                    app:tint="?attr/colorPrimary" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Pulsanti Funzionalità -->
-        <com.google.android.material.button.MaterialButton
+        <!-- Random training -->
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/trainRandomButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:padding="16dp"
-            android:text="@string/home_train_random" />
+            style="@style/FeatureCard">
 
-        <com.google.android.material.button.MaterialButton
+            <LinearLayout style="@style/FeatureRow">
+                <FrameLayout
+                    style="@style/FeatureIconBox"
+                    android:backgroundTint="@color/pp_tint_violet_bg">
+                    <ImageView
+                        style="@style/FeatureIcon"
+                        android:src="@drawable/ic_shuffle"
+                        app:tint="@color/pp_tint_violet_fg" />
+                </FrameLayout>
+                <LinearLayout style="@style/FeatureText">
+                    <TextView style="@style/FeatureTitle" android:text="@string/home_train_random" />
+                    <TextView style="@style/FeatureSub" android:text="@string/home_train_random_sub" />
+                </LinearLayout>
+                <ImageView style="@style/FeatureChevron" android:src="@drawable/ic_chevron_right" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Review your mistakes -->
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/trainErrorsButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:padding="16dp"
-            android:text="@string/home_train_errors" />
+            style="@style/FeatureCard">
 
-        <com.google.android.material.button.MaterialButton
+            <LinearLayout style="@style/FeatureRow">
+                <FrameLayout
+                    style="@style/FeatureIconBox"
+                    android:backgroundTint="@color/pp_tint_amber_bg">
+                    <ImageView
+                        style="@style/FeatureIcon"
+                        android:src="@drawable/ic_review"
+                        app:tint="@color/pp_tint_amber_fg" />
+                </FrameLayout>
+                <LinearLayout style="@style/FeatureText">
+                    <TextView style="@style/FeatureTitle" android:text="@string/home_train_errors" />
+                    <TextView style="@style/FeatureSub" android:text="@string/home_train_errors_sub" />
+                </LinearLayout>
+                <ImageView style="@style/FeatureChevron" android:src="@drawable/ic_chevron_right" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Study here (GPS) -->
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/studyHereButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:padding="16dp"
-            android:text="@string/home_study_here" />
+            style="@style/FeatureCard">
 
-        <com.google.android.material.button.MaterialButton
+            <LinearLayout style="@style/FeatureRow">
+                <FrameLayout
+                    style="@style/FeatureIconBox"
+                    android:backgroundTint="@color/pp_tint_green_bg">
+                    <ImageView
+                        style="@style/FeatureIcon"
+                        android:src="@drawable/ic_location"
+                        app:tint="@color/pp_tint_green_fg" />
+                </FrameLayout>
+                <LinearLayout style="@style/FeatureText">
+                    <TextView style="@style/FeatureTitle" android:text="@string/home_study_here" />
+                    <TextView style="@style/FeatureSub" android:text="@string/home_study_here_sub" />
+                </LinearLayout>
+                <ImageView style="@style/FeatureChevron" android:src="@drawable/ic_chevron_right" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Add word from photo -->
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/addPhotoButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:padding="16dp"
-            android:text="@string/home_add_photo" />
+            style="@style/FeatureCard">
+
+            <LinearLayout style="@style/FeatureRow">
+                <FrameLayout
+                    style="@style/FeatureIconBox"
+                    android:backgroundTint="@color/pp_tint_blue_bg">
+                    <ImageView
+                        style="@style/FeatureIcon"
+                        android:src="@drawable/ic_camera"
+                        app:tint="@color/pp_tint_blue_fg" />
+                </FrameLayout>
+                <LinearLayout style="@style/FeatureText">
+                    <TextView style="@style/FeatureTitle" android:text="@string/home_add_photo" />
+                    <TextView style="@style/FeatureSub" android:text="@string/home_add_photo_sub" />
+                </LinearLayout>
+                <ImageView style="@style/FeatureChevron" android:src="@drawable/ic_chevron_right" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 </ScrollView>

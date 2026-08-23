@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -26,20 +27,24 @@
             android:id="@+id/instructionText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#CC000000"
+            android:background="@color/pp_tint_violet_bg"
             android:padding="12dp"
+            android:drawableStart="@drawable/ic_info"
+            android:drawablePadding="8dp"
+            android:drawableTint="@color/pp_tint_violet_fg"
             android:text="@string/photo_pick_hint"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/pp_tint_violet_fg"
+            android:textStyle="bold"
             android:gravity="center" />
     </FrameLayout>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/okButton"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="52dp"
         android:layout_margin="16dp"
-        android:padding="12dp"
-        android:text="@string/photo_ok" />
+        android:text="@string/photo_ok"
+        app:cornerRadius="26dp" />
 
     <!-- Translations + final actions, shown after OK. -->
     <LinearLayout
@@ -80,18 +85,20 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/scanAnotherButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                android:text="@string/photo_scan_another" />
+                android:text="@string/photo_scan_another"
+                app:cornerRadius="24dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/goBackButton"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_weight="1"
-                android:text="@string/photo_go_back" />
+                android:text="@string/photo_go_back"
+                app:cornerRadius="24dp" />
         </LinearLayout>
     </LinearLayout>
 

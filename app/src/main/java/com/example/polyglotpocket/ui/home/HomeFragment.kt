@@ -144,7 +144,6 @@ class HomeFragment : Fragment() {
                     useWideViewPort = true
                 }
 
-                val escapedName = org.json.JSONObject.quote(contextResult.placeName)
                 val html = """
                     <!DOCTYPE html>
                     <html>
@@ -164,7 +163,7 @@ class HomeFragment : Fragment() {
                                 subdomains: 'abcd',
                                 maxZoom: 19
                             }).addTo(map);
-                            L.marker([${contextResult.latitude}, ${contextResult.longitude}]).addTo(map).bindPopup($escapedName).openPopup();
+                            L.marker([${contextResult.latitude}, ${contextResult.longitude}]).addTo(map);
                         </script>
                     </body>
                     </html>

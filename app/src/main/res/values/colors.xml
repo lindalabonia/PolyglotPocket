@@ -2,4 +2,26 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Brand palette (light) -->
+    <color name="pp_primary">#5A4FCF</color>
+    <color name="pp_on_primary">#FFFFFF</color>
+    <color name="pp_primary_container">#E7E4FB</color>
+    <color name="pp_on_primary_container">#211056</color>
+    <color name="pp_background">#F6F4FC</color>
+    <color name="pp_surface">#FFFFFF</color>
+    <color name="pp_surface_variant">#EFEDF6</color>
+    <color name="pp_on_surface">#1C1B22</color>
+    <color name="pp_on_surface_variant">#6B6A76</color>
+    <color name="pp_outline">#E1DEEF</color>
+
+    <!-- Per-feature icon tints (light) -->
+    <color name="pp_tint_violet_bg">#ECEAFB</color>
+    <color name="pp_tint_violet_fg">#5A4FCF</color>
+    <color name="pp_tint_amber_bg">#FCEFD9</color>
+    <color name="pp_tint_amber_fg">#C67C1E</color>
+    <color name="pp_tint_green_bg">#E2F3E6</color>
+    <color name="pp_tint_green_fg">#3E9B5B</color>
+    <color name="pp_tint_blue_bg">#E2EEFB</color>
+    <color name="pp_tint_blue_fg">#2F79C7</color>
 </resources>

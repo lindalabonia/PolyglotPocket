@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000">
+    android:background="?attr/colorSurface">
 
     <!-- Live camera preview, shown only while taking a picture. -->
     <androidx.camera.view.PreviewView
@@ -12,30 +12,79 @@
         android:layout_height="match_parent"
         android:visibility="gone" />
 
-    <!-- Initial choice: camera or gallery. -->
+    <!-- Initial screen: how it works + source choice. -->
     <LinearLayout
         android:id="@+id/choiceButtons"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:gravity="center"
-        android:padding="32dp">
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/photo_intro_title"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorOnSurface" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/photo_intro_sub"
+            android:textSize="14sp"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <!-- How it works -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:orientation="vertical"
+            android:background="@drawable/bg_word_card"
+            android:padding="18dp">
+
+            <LinearLayout style="@style/StepRow">
+                <FrameLayout style="@style/StepIconBox" android:backgroundTint="@color/pp_tint_blue_bg">
+                    <ImageView style="@style/StepIcon" android:src="@drawable/ic_camera" app:tint="@color/pp_tint_blue_fg" />
+                </FrameLayout>
+                <TextView style="@style/StepText" android:text="@string/photo_step_snap" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/StepRow" android:layout_marginTop="14dp">
+                <FrameLayout style="@style/StepIconBox" android:backgroundTint="@color/pp_tint_violet_bg">
+                    <ImageView style="@style/StepIcon" android:src="@drawable/ic_scan" app:tint="@color/pp_tint_violet_fg" />
+                </FrameLayout>
+                <TextView style="@style/StepText" android:text="@string/photo_step_detect" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/StepRow" android:layout_marginTop="14dp">
+                <FrameLayout style="@style/StepIconBox" android:backgroundTint="@color/pp_tint_green_bg">
+                    <ImageView style="@style/StepIcon" android:src="@drawable/ic_cards" app:tint="@color/pp_tint_green_fg" />
+                </FrameLayout>
+                <TextView style="@style/StepText" android:text="@string/photo_step_save" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/takePictureButton"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:padding="16dp"
-            android:text="@string/photo_take_picture" />
+            android:layout_height="52dp"
+            android:layout_marginBottom="12dp"
+            android:text="@string/photo_take_picture"
+            app:cornerRadius="26dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/chooseLibraryButton"
             style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="16dp"
-            android:text="@string/photo_choose_library" />
+            android:layout_height="52dp"
+            android:text="@string/photo_choose_library"
+            app:cornerRadius="26dp" />
     </LinearLayout>
 
     <!-- Shutter, shown only while the preview is active. -->
@@ -48,6 +97,7 @@
         android:paddingHorizontal="40dp"
         android:paddingVertical="16dp"
         android:text="@string/photo_capture"
+        app:cornerRadius="26dp"
         android:visibility="gone" />
 
     <!-- Detection progress overlay. -->
