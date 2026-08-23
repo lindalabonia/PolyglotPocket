@@ -63,10 +63,8 @@ class PhotoResultFragment : Fragment() {
             Toast.makeText(requireContext(), R.string.photo_select_at_least_one, Toast.LENGTH_SHORT).show()
             return
         }
-        // Lock the picking and switch to the results section.
-        binding.overlay.selectable = false
-        binding.okButton.visibility = View.GONE
-        binding.instructionText.visibility = View.GONE
+        // Keep the boxes tappable: the user can change the selection and press OK
+        // again to re-translate.
         binding.resultsSection.visibility = View.VISIBLE
         viewModel.translateWords(names)
     }

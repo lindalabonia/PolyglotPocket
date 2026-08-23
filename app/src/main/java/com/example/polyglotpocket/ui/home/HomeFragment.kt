@@ -31,11 +31,11 @@ class HomeFragment : Fragment() {
 
     // Flags and readable names for the languages available in the backend DB.
     private val languageNames = mapOf(
-        "spa" to "🇪🇸 Spanish (spa)",
-        "fra" to "🇫🇷 French (fra)",
-        "por" to "🇵🇹 Portuguese (por)",
-        "nld" to "🇳🇱 Dutch (nld)",
-        "arb" to "🇸🇦 Arabic (arb)",
+        "spa" to "🇪🇸 Spanish",
+        "fra" to "🇫🇷 French",
+        "por" to "🇵🇹 Portuguese",
+        "nld" to "🇳🇱 Dutch",
+        "arb" to "🇸🇦 Arabic",
     )
 
     // null until the user picks a language for the first time.
@@ -70,10 +70,6 @@ class HomeFragment : Fragment() {
         binding.trainErrorsButton.setOnClickListener { startTraining("errors") }
         binding.studyHereButton.setOnClickListener { comingSoon() }
         binding.addPhotoButton.setOnClickListener { startPhoto() }
-        binding.statsButton.setOnClickListener { comingSoon() }
-        binding.testBackendButton.setOnClickListener {
-            findNavController().navigate(R.id.action_home_to_apitest)
-        }
     }
 
     /** Navigate to training only if a language is selected, otherwise warn. */

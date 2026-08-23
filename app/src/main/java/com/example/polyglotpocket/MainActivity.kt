@@ -2,6 +2,7 @@ package com.example.polyglotpocket
 
 import android.os.Bundle
 import android.view.MenuItem
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
@@ -52,7 +53,11 @@ class MainActivity : AppCompatActivity() {
         navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
 
     private fun onDrawerItem(item: MenuItem): Boolean {
-        if (item.itemId == R.id.menu_logout) logout()
+        when (item.itemId) {
+            R.id.menu_statistics ->
+                Toast.makeText(this, R.string.coming_soon, Toast.LENGTH_SHORT).show()
+            R.id.menu_logout -> logout()
+        }
         binding.drawerLayout.closeDrawer(GravityCompat.START)
         return true
     }
