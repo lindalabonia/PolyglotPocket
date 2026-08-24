@@ -158,6 +158,9 @@ class TrainingFragment : Fragment(), SensorEventListener {
             state.totalCards
         )
 
+        binding.themeIcon.setImageResource(themeIcon(state.card.theme))
+        binding.themeLabel.text = state.card.theme.replaceFirstChar { it.uppercase() }
+
         binding.hintText.text = getString(R.string.training_hint_lang, langDisplay)
         binding.wordSourceText.text = state.card.wordSource
 
@@ -240,6 +243,21 @@ class TrainingFragment : Fragment(), SensorEventListener {
                 findNavController().popBackStack()
             }
             .show()
+    }
+
+    // Icon for the card's theme (same set used by the photo theme picker).
+    private fun themeIcon(code: String): Int = when (code) {
+        "food" -> R.drawable.ic_theme_food
+        "animals" -> R.drawable.ic_theme_animals
+        "plants" -> R.drawable.ic_theme_plants
+        "body" -> R.drawable.ic_theme_body
+        "places" -> R.drawable.ic_theme_places
+        "people" -> R.drawable.ic_theme_people
+        "materials" -> R.drawable.ic_theme_materials
+        "time" -> R.drawable.ic_theme_time
+        "money" -> R.drawable.ic_theme_money
+        "emotions" -> R.drawable.ic_theme_emotions
+        else -> R.drawable.ic_theme_objects
     }
 
     private fun languageName(code: String): String = when (code) {
