@@ -2,11 +2,16 @@ package com.example.polyglotpocket.ui.login
 
 import android.os.Bundle
 import android.util.Log
+import android.util.Patterns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.os.bundleOf
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputLayout
 import androidx.credentials.CreatePasswordRequest
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
@@ -54,8 +59,9 @@ class LoginFragment : Fragment() {
         binding.loginButton.setOnClickListener {
             viewModel.login(username(), password())
         }
-        binding.registerButton.setOnClickListener {
-            viewModel.register(username(), password())
+        binding.registerButton.setOnClickListener { showRegisterDialog() }
+        binding.forgotPasswordLink.setOnClickListener {
+            findNavController().navigate(R.id.action_login_to_forgot)
         }
 
         // Standard pattern: offer a saved password when the user taps a field.
@@ -98,6 +104,55 @@ class LoginFragment : Fragment() {
 
     private fun username() = binding.usernameInput.text?.toString().orEmpty()
     private fun password() = binding.passwordInput.text?.toString().orEmpty()
+
+    /** Registration needs an email, so it's collected in its own dialog to keep
+     *  the login form (username + password) clean. */
+    private fun showRegisterDialog() {
+        val view = layoutInflater.inflate(R.layout.dialog_register, null)
+        val userField = view.findViewById<EditText>(R.id.regUsername)
+        val emailField = view.findViewById<EditText>(R.id.regEmail)
+        val passField = view.findViewById<EditText>(R.id.regPassword)
+        val userLayout = view.findViewById<TextInputLayout>(R.id.regUsernameLayout)
+        val emailLayout = view.findViewById<TextInputLayout>(R.id.regEmailLayout)
+        val passLayout = view.findViewById<TextInputLayout>(R.id.regPasswordLayout)
+
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(view)
+            .setPositiveButton(R.string.register_create, null) // set below to control dismiss
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val user = userField.text?.toString()?.trim().orEmpty()
+                val email = emailField.text?.toString()?.trim().orEmpty()
+                val pass = passField.text?.toString().orEmpty()
+
+                userLayout.error = null
+                emailLayout.error = null
+                passLayout.error = null
+
+                var valid = true
+                if (user.length < MIN_USERNAME) {
+                    userLayout.error = getString(R.string.register_err_username); valid = false
+                }
+                if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                    emailLayout.error = getString(R.string.register_err_email); valid = false
+                }
+                if (pass.length < MIN_PASSWORD) {
+                    passLayout.error = getString(R.string.register_err_password, MIN_PASSWORD); valid = false
+                }
+                if (!valid) return@setOnClickListener
+
+                // Fill the main fields so the "save password" prompt works on success.
+                binding.usernameInput.setText(user)
+                binding.passwordInput.setText(pass)
+                dialog.dismiss()
+                viewModel.register(user, email, pass)
+            }
+        }
+        dialog.show()
+    }
 
     /** After a successful auth, offer to save the password, then go to the menu. */
     private fun saveCredentialAndGoHome(user: String, pass: String, displayName: String) {
@@ -187,5 +242,10 @@ class LoginFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        private const val MIN_USERNAME = 3
+        private const val MIN_PASSWORD = 8
     }
 }

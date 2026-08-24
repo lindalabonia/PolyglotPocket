@@ -15,7 +15,17 @@
             app:destination="@id/homeFragment"
             app:popUpTo="@id/loginFragment"
             app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_login_to_forgot"
+            app:destination="@id/forgotPasswordFragment" />
     </fragment>
+
+    <!-- Password reset (forgot password) -->
+    <fragment
+        android:id="@+id/forgotPasswordFragment"
+        android:name="com.example.polyglotpocket.ui.login.ForgotPasswordFragment"
+        android:label="@string/reset_title"
+        tools:layout="@layout/fragment_forgot_password" />
 
     <fragment
         android:id="@+id/homeFragment"

@@ -1,9 +1,13 @@
 """Polyglot Pocket REST backend."""
 
+import base64
 import hashlib
 import os
+import re
+import secrets
 import sqlite3
 from datetime import datetime, timedelta, timezone
+from email.message import EmailMessage
 
 import jwt
 import requests
@@ -12,6 +16,7 @@ from argon2.exceptions import VerifyMismatchError
 from flask import Flask, jsonify, request
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
+from google.oauth2.credentials import Credentials
 
 app = Flask(__name__)
 
@@ -25,6 +30,17 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "dev-insecure-change-me")
 GOOGLE_WEB_CLIENT_ID = os.environ.get("GOOGLE_WEB_CLIENT_ID", "")
 VISION_API_KEY = os.environ.get("GOOGLE_CLOUD_VISION_API_KEY", "")
 TOKEN_TTL = timedelta(days=7)
+
+# Gmail sender for password-reset emails (OAuth: one authorized mailbox).
+GMAIL_CLIENT_ID = os.environ.get("GMAIL_CLIENT_ID", "")
+GMAIL_CLIENT_SECRET = os.environ.get("GMAIL_CLIENT_SECRET", "")
+GMAIL_REFRESH_TOKEN = os.environ.get("GMAIL_REFRESH_TOKEN", "")
+GMAIL_SENDER = os.environ.get("GMAIL_SENDER", "")
+
+# Password reset: short-lived 6-digit code, limited attempts.
+RESET_TTL_MIN = 15
+RESET_MAX_ATTEMPTS = 5
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 # Our 3-letter target codes -> MyMemory 2-letter codes.
 MYMEMORY_LANG = {"spa": "es", "fra": "fr", "por": "pt", "nld": "nl", "arb": "ar"}
@@ -62,6 +78,43 @@ def uid_from_request():
         return None
 
 
+def send_reset_email(to_addr, code):
+    """Send a password-reset code from the authorized Gmail mailbox via the
+    Gmail API (HTTP), so it works on PythonAnywhere's free tier where SMTP is
+    blocked. Raises if the sender is not configured or the API call fails."""
+    if not all([GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER]):
+        raise RuntimeError("Gmail sender is not configured")
+
+    creds = Credentials(
+        None,
+        refresh_token=GMAIL_REFRESH_TOKEN,
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=GMAIL_CLIENT_ID,
+        client_secret=GMAIL_CLIENT_SECRET,
+        scopes=["https://www.googleapis.com/auth/gmail.send"],
+    )
+    creds.refresh(google_requests.Request())
+
+    msg = EmailMessage()
+    msg["To"] = to_addr
+    msg["From"] = GMAIL_SENDER
+    msg["Subject"] = "Your PolyglotPocket password reset code"
+    msg.set_content(
+        f"Your password reset code is {code}\n\n"
+        f"It expires in {RESET_TTL_MIN} minutes. "
+        f"If you didn't request it, you can ignore this email."
+    )
+
+    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+    resp = requests.post(
+        "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+        headers={"Authorization": f"Bearer {creds.token}"},
+        json={"raw": raw},
+        timeout=20,
+    )
+    resp.raise_for_status()
+
+
 # --- Auth ---------------------------------------------------------------
 
 @app.post("/auth/register")
@@ -69,14 +122,24 @@ def register():
     data = request.get_json(silent=True) or {}
     username = (data.get("username") or "").strip()
     password = data.get("password") or ""
-    if len(username) < 3 or len(password) < 6:
-        return jsonify({"error": "username min 3 chars, password min 6"}), 400
+    email = (data.get("email") or "").strip().lower()
+    if len(username) < 3 or len(password) < 8:
+        return jsonify({"error": "username min 3 chars, password min 8"}), 400
+    if not EMAIL_RE.match(email):
+        return jsonify({"error": "a valid email is required"}), 400
 
     con = get_db()
     try:
+        taken = con.execute(
+            "SELECT 1 FROM users WHERE email = ? AND auth_provider = 'local'",
+            (email,),
+        ).fetchone()
+        if taken is not None:
+            return jsonify({"error": "email already registered"}), 409
+
         cur = con.execute(
-            "INSERT INTO users (username, password_hash, auth_provider) VALUES (?, ?, 'local')",
-            (username, ph.hash(password)),
+            "INSERT INTO users (username, password_hash, email, auth_provider) VALUES (?, ?, ?, 'local')",
+            (username, ph.hash(password), email),
         )
         con.commit()
         uid = cur.lastrowid
@@ -91,14 +154,16 @@ def register():
 @app.post("/auth/login")
 def login():
     data = request.get_json(silent=True) or {}
-    username = (data.get("username") or "").strip()
+    identifier = (data.get("username") or "").strip()
     password = data.get("password") or ""
 
     con = get_db()
     try:
+        # Accept either the username (as typed) or the email (stored lowercase).
         row = con.execute(
-            "SELECT id, password_hash FROM users WHERE username = ? AND auth_provider = 'local'",
-            (username,),
+            "SELECT id, username, password_hash FROM users "
+            "WHERE (username = ? OR email = ?) AND auth_provider = 'local'",
+            (identifier, identifier.lower()),
         ).fetchone()
     finally:
         con.close()
@@ -111,7 +176,106 @@ def login():
     except VerifyMismatchError:
         return jsonify({"error": "invalid credentials"}), 401
 
-    return jsonify({"token": make_token(row["id"]), "user": {"id": row["id"], "username": username}})
+    return jsonify({"token": make_token(row["id"]), "user": {"id": row["id"], "username": row["username"]}})
+
+
+@app.post("/auth/forgot")
+def forgot_password():
+    """Start a password reset. Always returns the same generic response so it
+    never reveals whether an email is registered (no user enumeration)."""
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    if email:
+        con = get_db()
+        try:
+            row = con.execute(
+                "SELECT id FROM users WHERE email = ? AND auth_provider = 'local'",
+                (email,),
+            ).fetchone()
+            if row is not None:
+                code = f"{secrets.randbelow(1_000_000):06d}"
+                expires = (datetime.now(timezone.utc) + timedelta(minutes=RESET_TTL_MIN)) \
+                    .strftime("%Y-%m-%d %H:%M:%S")
+                con.execute(
+                    """
+                    INSERT INTO password_resets (user_id, code_hash, expires_at, attempts)
+                    VALUES (?, ?, ?, 0)
+                    ON CONFLICT (user_id)
+                    DO UPDATE SET code_hash = excluded.code_hash,
+                                  expires_at = excluded.expires_at,
+                                  attempts = 0,
+                                  created_at = datetime('now')
+                    """,
+                    (row["id"], ph.hash(code), expires),
+                )
+                con.commit()
+                # Local development: no Gmail creds needed to test the flow.
+                if os.environ.get("POLYGLOT_DEV"):
+                    print(f"[DEV] reset code for {email}: {code}")
+                try:
+                    send_reset_email(email, code)
+                except Exception:
+                    pass  # never leak send failures to the caller
+        finally:
+            con.close()
+
+    return jsonify({"status": "ok"}), 200
+
+
+@app.post("/auth/reset")
+def reset_password():
+    """Complete a password reset with the emailed 6-digit code."""
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    code = (data.get("code") or "").strip()
+    new_password = data.get("new_password") or ""
+    if len(new_password) < 8:
+        return jsonify({"error": "password min 8 chars"}), 400
+
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    con = get_db()
+    try:
+        row = con.execute(
+            """
+            SELECT u.id AS uid, r.code_hash, r.expires_at, r.attempts
+            FROM users u JOIN password_resets r ON r.user_id = u.id
+            WHERE u.email = ? AND u.auth_provider = 'local'
+            """,
+            (email,),
+        ).fetchone()
+        if row is None:
+            return jsonify({"error": "invalid or expired code"}), 400
+
+        if row["expires_at"] < now:
+            con.execute("DELETE FROM password_resets WHERE user_id = ?", (row["uid"],))
+            con.commit()
+            return jsonify({"error": "invalid or expired code"}), 400
+
+        if row["attempts"] >= RESET_MAX_ATTEMPTS:
+            con.execute("DELETE FROM password_resets WHERE user_id = ?", (row["uid"],))
+            con.commit()
+            return jsonify({"error": "too many attempts, request a new code"}), 429
+
+        try:
+            ph.verify(row["code_hash"], code)
+        except VerifyMismatchError:
+            con.execute(
+                "UPDATE password_resets SET attempts = attempts + 1 WHERE user_id = ?",
+                (row["uid"],),
+            )
+            con.commit()
+            return jsonify({"error": "invalid or expired code"}), 400
+
+        con.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (ph.hash(new_password), row["uid"]),
+        )
+        con.execute("DELETE FROM password_resets WHERE user_id = ?", (row["uid"],))
+        con.commit()
+    finally:
+        con.close()
+
+    return jsonify({"status": "ok"}), 200
 
 
 @app.post("/auth/google")

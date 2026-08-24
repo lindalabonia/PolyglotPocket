@@ -5,12 +5,39 @@
     <string name="login_title">Polyglot Pocket</string>
     <string name="login_subtitle">Learn vocabulary, one flashcard at a time</string>
     <string name="login_username_hint">Username</string>
+    <string name="login_identifier_hint">Username or email</string>
     <string name="login_password_hint">Password</string>
     <string name="login_button">Log in</string>
     <string name="login_register">Create account</string>
     <string name="login_google">Sign in with Google</string>
     <string name="login_or">or</string>
     <string name="login_error_empty">Enter username and password</string>
+
+    <!-- Registration dialog -->
+    <string name="register_title">Create your account</string>
+    <string name="register_subtitle">We\'ll use your email only for password recovery.</string>
+    <string name="register_email_hint">Email</string>
+    <string name="register_create">Create account</string>
+    <string name="register_err_username">Username must be at least 3 characters</string>
+    <string name="register_err_email">Enter a valid email</string>
+    <string name="register_err_password">Password must be at least %1$d characters</string>
+
+    <!-- Login extra -->
+    <string name="login_forgot">Forgot password?</string>
+
+    <!-- Password reset screen -->
+    <string name="reset_title">Reset password</string>
+    <string name="reset_subtitle">Enter your email and we\'ll send you a code.</string>
+    <string name="reset_send_code">Send code</string>
+    <string name="reset_code_sent">If an account exists for %1$s, we\'ve sent a code. Didn\'t get it? Check the address or create an account.</string>
+    <string name="reset_code_hint">6-digit code</string>
+    <string name="reset_new_password_hint">New password</string>
+    <string name="reset_confirm">Reset password</string>
+    <string name="reset_back_to_login">Back to login</string>
+    <string name="reset_request_new">Request a new code</string>
+    <string name="reset_err_code">Enter the code from the email</string>
+    <string name="reset_success">Password updated. Please log in.</string>
+    <string name="reset_no_connection">Couldn\'t connect. Please try again.</string>
 
     <!-- Home -->
     <string name="home_title">Home</string>

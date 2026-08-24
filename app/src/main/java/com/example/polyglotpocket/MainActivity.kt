@@ -41,12 +41,13 @@ class MainActivity : AppCompatActivity() {
 
         binding.navView.setNavigationItemSelectedListener { onDrawerItem(it) }
 
-        // No toolbar/drawer on the login screen.
+        // No toolbar/drawer on the pre-login screens (login, password reset).
         navController.addOnDestinationChangedListener { _, destination, _ ->
-            val isLogin = destination.id == R.id.loginFragment
-            binding.toolbar.isVisible = !isLogin
+            val preAuth = destination.id == R.id.loginFragment ||
+                destination.id == R.id.forgotPasswordFragment
+            binding.toolbar.isVisible = !preAuth
             binding.drawerLayout.setDrawerLockMode(
-                if (isLogin) DrawerLayout.LOCK_MODE_LOCKED_CLOSED else DrawerLayout.LOCK_MODE_UNLOCKED
+                if (preAuth) DrawerLayout.LOCK_MODE_LOCKED_CLOSED else DrawerLayout.LOCK_MODE_UNLOCKED
             )
         }
     }

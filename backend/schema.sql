@@ -54,3 +54,14 @@ CREATE TABLE IF NOT EXISTS errors (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (card_id) REFERENCES cards(id)
 );
+
+-- One active password-reset code per local user. The 6-digit code is stored
+-- hashed; a new request replaces any previous one for that user.
+CREATE TABLE IF NOT EXISTS password_resets (
+    user_id    INTEGER PRIMARY KEY,
+    code_hash  TEXT NOT NULL,
+    expires_at TEXT NOT NULL,             -- UTC "YYYY-MM-DD HH:MM:SS"
+    attempts   INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);

@@ -49,7 +49,7 @@
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/login_username_hint"
+                android:hint="@string/login_identifier_hint"
                 app:boxCornerRadiusTopStart="14dp"
                 app:boxCornerRadiusTopEnd="14dp"
                 app:boxCornerRadiusBottomStart="14dp"
@@ -99,6 +99,20 @@
                 android:layout_marginTop="10dp"
                 android:text="@string/login_register"
                 app:cornerRadius="26dp" />
+
+            <TextView
+                android:id="@+id/forgotPasswordLink"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:padding="6dp"
+                android:text="@string/login_forgot"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorPrimary"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true" />
 
             <LinearLayout
                 android:layout_width="match_parent"

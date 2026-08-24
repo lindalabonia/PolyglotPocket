@@ -28,8 +28,9 @@ class LoginViewModel(app: Application) : AndroidViewModel(app) {
     private val _state = MutableLiveData<State>(State.Loading)
     val state: LiveData<State> = _state
 
-    fun login(username: String, password: String) = run(username, password, register = false)
-    fun register(username: String, password: String) = run(username, password, register = true)
+    fun login(username: String, password: String) = run(username, "", password, register = false)
+    fun register(username: String, email: String, password: String) =
+        run(username, email, password, register = true)
 
     /** On startup: validate a stored token and, if good, go straight to Home;
      *  otherwise reveal the login form. */
@@ -64,7 +65,7 @@ class LoginViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private fun run(username: String, password: String, register: Boolean) {
+    private fun run(username: String, email: String, password: String, register: Boolean) {
         val u = username.trim()
         if (u.isBlank() || password.isBlank()) {
             _state.value = State.Error("Enter username and password")
@@ -73,7 +74,8 @@ class LoginViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = State.Loading
         viewModelScope.launch {
             _state.value = try {
-                val result = if (register) BackendApi.register(u, password) else BackendApi.login(u, password)
+                val result = if (register) BackendApi.register(u, email.trim(), password)
+                             else BackendApi.login(u, password)
                 TokenStore.save(getApplication(), result.token)
                 State.Success(result.username)
             } catch (e: Exception) {

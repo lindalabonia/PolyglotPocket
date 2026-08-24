@@ -74,11 +74,37 @@ object BackendApi {
 
     // --- Authentication ---
 
-    suspend fun register(username: String, password: String): AuthResult =
-        withContext(Dispatchers.IO) { parseAuth(post("/auth/register", authBody(username, password))) }
+    suspend fun register(username: String, email: String, password: String): AuthResult =
+        withContext(Dispatchers.IO) {
+            val body = JSONObject()
+                .put("username", username)
+                .put("email", email)
+                .put("password", password)
+                .toString()
+            parseAuth(post("/auth/register", body))
+        }
 
     suspend fun login(username: String, password: String): AuthResult =
         withContext(Dispatchers.IO) { parseAuth(post("/auth/login", authBody(username, password))) }
+
+    /** Ask the backend to email a reset code. The response is intentionally
+     *  generic (it never reveals whether the email is registered). */
+    suspend fun forgotPassword(email: String) = withContext(Dispatchers.IO) {
+        post("/auth/forgot", JSONObject().put("email", email).toString())
+        Unit
+    }
+
+    /** Complete a reset with the emailed code. Throws ApiException on failure
+     *  (wrong/expired code, too many attempts, weak password). */
+    suspend fun resetPassword(email: String, code: String, newPassword: String) = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+            .put("email", email)
+            .put("code", code)
+            .put("new_password", newPassword)
+            .toString()
+        post("/auth/reset", body)
+        Unit
+    }
 
     suspend fun googleSignIn(idToken: String, nonce: String): AuthResult = withContext(Dispatchers.IO) {
         val body = JSONObject().put("id_token", idToken).put("nonce", nonce).toString()
