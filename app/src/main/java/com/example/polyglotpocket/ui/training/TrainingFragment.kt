@@ -200,7 +200,7 @@ class TrainingFragment : Fragment(), SensorEventListener {
                 val titleStart = text.length
                 text.append(getString(R.string.training_feedback_wrong_title))
                 text.setSpan(StyleSpan(Typeface.BOLD), titleStart, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                text.append("\n").append(getString(R.string.training_feedback_wrong_prefix))
+                text.append("\n").append(getString(R.string.training_feedback_wrong_prefix)).append(" ")
                 val start = text.length
                 text.append(answer)
                 text.setSpan(RelativeSizeSpan(1.6f), start, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)

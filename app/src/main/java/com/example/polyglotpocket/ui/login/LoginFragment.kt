@@ -66,19 +66,23 @@ class LoginFragment : Fragment() {
         binding.passwordInput.onFocusChangeListener = focusListener
 
         binding.googleSignInButton.setOnClickListener { signInWithGoogle() }
+        binding.retryButton.setOnClickListener { viewModel.tryAutoLogin() }
 
         viewModel.state.observe(viewLifecycleOwner) { state ->
-            val loading = state is LoginViewModel.State.Loading
-            binding.loginProgress.visibility = if (loading) View.VISIBLE else View.GONE
-            binding.loginButton.isEnabled = !loading
-            binding.registerButton.isEnabled = !loading
+            // Show the form ONLY when we actually need it (idle/error). While checking a
+            // token or right before navigating home (success), keep the spinner so the
+            // login form never flashes.
+            val showForm = state is LoginViewModel.State.Idle || state is LoginViewModel.State.Error
+            val showOffline = state is LoginViewModel.State.Offline
+            binding.loginContent.visibility = if (showForm) View.VISIBLE else View.GONE
+            binding.offlinePanel.visibility = if (showOffline) View.VISIBLE else View.GONE
+            binding.loginProgress.visibility = if (!showForm && !showOffline) View.VISIBLE else View.GONE
 
             when (state) {
                 is LoginViewModel.State.Success -> {
-                    val u = username()
-                    val p = password()
-                    viewModel.consumeState()
-                    saveCredentialAndGoHome(u, p, state.username)
+                    // Keep the spinner (don't reset to Idle) so the form doesn't flash
+                    // before we navigate to Home.
+                    saveCredentialAndGoHome(username(), password(), state.username)
                 }
                 is LoginViewModel.State.Error -> {
                     Toast.makeText(requireContext(), state.message, Toast.LENGTH_SHORT).show()
@@ -87,6 +91,9 @@ class LoginFragment : Fragment() {
                 else -> Unit
             }
         }
+
+        // If a valid session token is already stored, skip login.
+        if (savedInstanceState == null) viewModel.tryAutoLogin()
     }
 
     private fun username() = binding.usernameInput.text?.toString().orEmpty()

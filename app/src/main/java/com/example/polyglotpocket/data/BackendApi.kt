@@ -74,6 +74,15 @@ object BackendApi {
         parseAuth(post("/auth/google", body))
     }
 
+    /** Validate a stored token and return the user's display name.
+     *  Throws ApiException (e.g. 401) if the token is invalid/expired. */
+    suspend fun getMe(token: String): String = withContext(Dispatchers.IO) {
+        val o = JSONObject(request("GET", "/me", null, token))
+        o.optString("username")
+            .ifEmpty { o.optString("display_name") }
+            .ifEmpty { o.optString("email") }
+    }
+
     // --- Languages, Cards & Training ---
 
     suspend fun getLanguages(): List<String> = withContext(Dispatchers.IO) {

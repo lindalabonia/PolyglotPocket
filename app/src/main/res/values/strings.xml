@@ -41,7 +41,7 @@
     <string name="training_title">Training</string>
     <string name="training_hint_lang">Translate to %1$s</string>
     <string name="training_feedback_wrong_title">Wrong ❌</string>
-    <string name="training_feedback_wrong_prefix">Correct answer: </string>
+    <string name="training_feedback_wrong_prefix">Correct answer:</string>
     <string name="training_card_count_title">How many cards?</string>
     <string name="training_progress">Card %1$d of %2$d</string>
     <string name="training_input_hint">Type the translation...</string>
@@ -75,6 +75,11 @@
     <string name="photo_add">Add</string>
     <string name="photo_added">Added ✓</string>
     <string name="photo_already_saved">Already in shared cards</string>
+
+    <!-- Offline -->
+    <string name="offline_title">You\'re offline</string>
+    <string name="offline_message">Connect to the internet to sign in and keep learning.</string>
+    <string name="offline_retry">Retry</string>
 
     <!-- Side menu -->
     <string name="menu_logout">Log out</string>

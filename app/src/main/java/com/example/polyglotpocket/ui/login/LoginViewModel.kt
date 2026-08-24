@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.example.polyglotpocket.data.ApiException
 import com.example.polyglotpocket.data.BackendApi
 import com.example.polyglotpocket.data.TokenStore
 import kotlinx.coroutines.launch
@@ -18,15 +19,37 @@ class LoginViewModel(app: Application) : AndroidViewModel(app) {
     sealed interface State {
         data object Idle : State
         data object Loading : State
+        data object Offline : State
         data class Success(val username: String) : State
         data class Error(val message: String) : State
     }
 
-    private val _state = MutableLiveData<State>(State.Idle)
+    // Start in Loading so the login form stays hidden until the auto-login check resolves.
+    private val _state = MutableLiveData<State>(State.Loading)
     val state: LiveData<State> = _state
 
     fun login(username: String, password: String) = run(username, password, register = false)
     fun register(username: String, password: String) = run(username, password, register = true)
+
+    /** On startup: validate a stored token and, if good, go straight to Home;
+     *  otherwise reveal the login form. */
+    fun tryAutoLogin() {
+        viewModelScope.launch {
+            val token = TokenStore.get(getApplication())
+            _state.value = if (token == null) {
+                State.Idle
+            } else try {
+                State.Success(BackendApi.getMe(token))
+            } catch (e: ApiException) {
+                // Token rejected by the server (invalid/expired): drop it, show login.
+                TokenStore.clear(getApplication())
+                State.Idle
+            } catch (e: Exception) {
+                // No connection: keep the token and tell the user to get online.
+                State.Offline
+            }
+        }
+    }
 
     fun loginWithGoogle(idToken: String, rawNonce: String) {
         _state.value = State.Loading
