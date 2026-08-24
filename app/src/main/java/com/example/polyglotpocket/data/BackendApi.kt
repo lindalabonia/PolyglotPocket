@@ -33,6 +33,17 @@ data class SessionRecord(
     val attempts: List<AttemptRecord>,
 )
 
+/** A saved session as returned by GET /sessions (the read side of the stats). */
+data class SessionSummary(
+    val mode: String,
+    val targetLang: String,
+    val numCards: Int,
+    val numCorrect: Int,
+    val numWrong: Int,
+    val durationMs: Long,
+    val startedAt: String,   // UTC, "yyyy-MM-dd HH:mm:ss"
+)
+
 data class AuthResult(val token: String, val username: String)
 
 /** An object located by Vision, with its box normalized to 0..1 over the image. */
@@ -137,6 +148,26 @@ object BackendApi {
         request("POST", "/sessions", json.toString(), token)
         true
     }
+
+    /** The signed-in user's own sessions (never public). Pass a targetLang to
+     *  scope to one language, or null for all languages. */
+    suspend fun getSessions(token: String, targetLang: String? = null): List<SessionSummary> =
+        withContext(Dispatchers.IO) {
+            val path = if (targetLang.isNullOrBlank()) "/sessions" else "/sessions?target_lang=$targetLang"
+            val arr = JSONArray(request("GET", path, null, token))
+            (0 until arr.length()).map { i ->
+                val o = arr.getJSONObject(i)
+                SessionSummary(
+                    o.getString("mode"),
+                    o.getString("target_lang"),
+                    o.getInt("num_cards"),
+                    o.getInt("num_correct"),
+                    o.getInt("num_wrong"),
+                    o.getLong("duration_ms"),
+                    o.optString("started_at"),
+                )
+            }
+        }
 
     // --- Photo -> card (REQ. 6) ---
 

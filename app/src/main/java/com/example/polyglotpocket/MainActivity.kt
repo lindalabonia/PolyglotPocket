@@ -2,7 +2,6 @@ package com.example.polyglotpocket
 
 import android.os.Bundle
 import android.view.MenuItem
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.GravityCompat
@@ -66,8 +65,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun onDrawerItem(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.menu_statistics ->
-                Toast.makeText(this, R.string.coming_soon, Toast.LENGTH_SHORT).show()
+            R.id.menu_statistics -> {
+                if (navController.currentDestination?.id != R.id.statisticsFragment) {
+                    navController.navigate(R.id.statisticsFragment)
+                }
+            }
             R.id.menu_logout -> logout()
         }
         binding.drawerLayout.closeDrawer(GravityCompat.START)

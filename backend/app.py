@@ -333,6 +333,36 @@ def save_session():
     return jsonify({"status": "ok", "session_id": session_id}), 201
 
 
+@app.get("/sessions")
+def list_sessions():
+    """The signed-in user's own sessions (never public). Optional target_lang
+    filter; without it, all languages are returned. Feeds the stats screens,
+    which do the aggregation client-side."""
+    uid = uid_from_request()
+    if uid is None:
+        return jsonify({"error": "unauthorized"}), 401
+
+    target_lang = request.args.get("target_lang", "").strip()
+    con = get_db()
+    try:
+        if target_lang:
+            rows = con.execute(
+                "SELECT mode, target_lang, num_cards, num_correct, num_wrong, duration_ms, started_at "
+                "FROM sessions WHERE user_id = ? AND target_lang = ? ORDER BY started_at",
+                (uid, target_lang),
+            ).fetchall()
+        else:
+            rows = con.execute(
+                "SELECT mode, target_lang, num_cards, num_correct, num_wrong, duration_ms, started_at "
+                "FROM sessions WHERE user_id = ? ORDER BY started_at",
+                (uid,),
+            ).fetchall()
+    finally:
+        con.close()
+
+    return jsonify([dict(r) for r in rows])
+
+
 # --- Photo -> card (REQ. 6 image processing + REQ. 8 Vision + REQ. 1 MyMemory) ---
 
 # Drop weak detections so the overlay is not cluttered with unlikely guesses.

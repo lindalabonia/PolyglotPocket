@@ -72,4 +72,15 @@
         android:label="@string/photo_title"
         tools:layout="@layout/fragment_photo_result" />
 
+    <!-- Statistics (REQ. 3) -->
+    <fragment
+        android:id="@+id/statisticsFragment"
+        android:name="com.example.polyglotpocket.ui.stats.StatisticsFragment"
+        android:label="@string/stats_title"
+        tools:layout="@layout/fragment_statistics">
+        <action
+            android:id="@+id/action_stats_to_training"
+            app:destination="@id/trainingFragment" />
+    </fragment>
+
 </navigation>

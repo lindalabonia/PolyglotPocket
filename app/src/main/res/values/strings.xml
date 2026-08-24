@@ -15,7 +15,7 @@
     <!-- Home -->
     <string name="home_title">Home</string>
     <string name="home_welcome">Hi, %1$s! 👋</string>
-    <string name="home_welcome_sub">Ready for today\'s words?</string>
+    <string name="home_welcome_sub">Ready for a quick session?</string>
     <string name="home_target_lang_label">Study language</string>
     <string name="home_change">Change</string>
     <string name="home_select_language_title">Choose language</string>
@@ -30,6 +30,40 @@
     <string name="home_add_photo">Add word from photo</string>
     <string name="home_add_photo_sub">Snap an object, get a flashcard</string>
     <string name="home_stats">Statistics</string>
+
+    <!-- Home: progress section (all languages) -->
+    <string name="home_progress_title">Your progress</string>
+    <string name="home_streak_days">%1$d-day streak</string>
+    <string name="home_streak_sub">You\'ve practiced %1$d days in a row</string>
+    <string name="home_streak_emoji_active">🔥</string>
+    <string name="home_streak_emoji_none">😔</string>
+    <string name="home_streak_none_title">No streak yet</string>
+    <string name="home_streak_none_sub">Train today to start one</string>
+    <string name="home_calendar_title">Practice calendar</string>
+    <string name="home_calendar_hint">Tap to expand</string>
+    <string name="home_calendar_less">Less</string>
+    <string name="home_calendar_more">More</string>
+    <string name="home_kpi_sessions">Sessions</string>
+    <string name="home_kpi_cards">Cards studied</string>
+    <string name="home_kpi_time">Time practiced</string>
+
+    <!-- Statistics screen (per language) -->
+    <string name="stats_title">Statistics</string>
+    <string name="stats_pick_lang">Show statistics for</string>
+    <string name="stats_percent">%1$d%%</string>
+    <string name="stats_avg_accuracy">Average accuracy</string>
+    <string name="stats_avg_sub">%1$s · across %2$d answers</string>
+    <string name="stats_accuracy_title">Accuracy over time</string>
+    <string name="stats_accuracy_sub">last 20 sessions</string>
+    <string name="stats_cards_title">Cards studied</string>
+    <string name="stats_cards_sub">this week</string>
+    <string name="stats_cvw_title">Correct vs. wrong</string>
+    <string name="stats_cvw_sub">%1$d answers</string>
+    <string name="stats_correct">Correct</string>
+    <string name="stats_wrong">Wrong</string>
+    <string name="stats_practice">Practice your %1$s mistakes →</string>
+    <string name="stats_empty">No sessions yet.\nTrain a bit and your stats will show up here.</string>
+    <string name="stats_error">Couldn\'t load your statistics.</string>
 
     <!-- Backend test -->
     <string name="apitest_title">Test backend</string>

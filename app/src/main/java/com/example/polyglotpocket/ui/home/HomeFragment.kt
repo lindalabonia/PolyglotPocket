@@ -20,7 +20,10 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.polyglotpocket.R
+import com.example.polyglotpocket.data.BackendApi
 import com.example.polyglotpocket.data.GpsThemeResolver
+import com.example.polyglotpocket.data.Stats
+import com.example.polyglotpocket.data.TokenStore
 import com.example.polyglotpocket.databinding.FragmentHomeBinding
 import kotlinx.coroutines.launch
 
@@ -93,6 +96,55 @@ class HomeFragment : Fragment() {
         binding.trainErrorsButton.setOnClickListener { startTraining("errors") }
         binding.addPhotoButton.setOnClickListener { startPhoto() }
         binding.studyHereButton.setOnClickListener { checkLocationAndStartGps() }
+
+        // Expand/collapse the practice calendar (kept collapsed to save space).
+        binding.calendarHeader.setOnClickListener {
+            val expanded = binding.calendarBody.visibility == View.VISIBLE
+            binding.calendarBody.visibility = if (expanded) View.GONE else View.VISIBLE
+            binding.calendarHint.visibility = if (expanded) View.VISIBLE else View.GONE
+            binding.calendarChevron.rotation = if (expanded) 0f else 90f
+        }
+
+        loadProgress()
+    }
+
+    /** Load the user's sessions (all languages) and fill the progress section.
+     *  Non-critical: on failure the placeholders simply stay. */
+    private fun loadProgress() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val token = TokenStore.get(requireContext()) ?: return@launch
+            val sessions = try {
+                BackendApi.getSessions(token)
+            } catch (e: Exception) {
+                return@launch
+            }
+
+            val totals = Stats.totals(sessions)
+            binding.kpiSessions.text = totals.sessions.toString()
+            binding.kpiCards.text = totals.cards.toString()
+            binding.kpiTime.text = formatDuration(totals.durationMs)
+
+            val streak = Stats.currentStreak(sessions)
+            if (streak > 0) {
+                binding.streakEmoji.text = getString(R.string.home_streak_emoji_active)
+                binding.streakText.text = getString(R.string.home_streak_days, streak)
+                binding.streakSubText.text = getString(R.string.home_streak_sub, streak)
+            } else {
+                binding.streakEmoji.text = getString(R.string.home_streak_emoji_none)
+                binding.streakText.text = getString(R.string.home_streak_none_title)
+                binding.streakSubText.text = getString(R.string.home_streak_none_sub)
+            }
+
+            val calendar = Stats.calendar(sessions)
+            binding.calendarView.setData(calendar.levels, calendar.startMondayMillis)
+        }
+    }
+
+    private fun formatDuration(ms: Long): String {
+        val totalMin = ms / 60_000
+        val h = totalMin / 60
+        val m = totalMin % 60
+        return if (h > 0) "${h}h ${m}m" else "${m}m"
     }
 
     private fun checkLocationAndStartGps() {

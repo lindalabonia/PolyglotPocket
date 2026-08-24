@@ -26,6 +26,13 @@
     <color name="pp_tint_blue_fg">#2F79C7</color>
     <color name="pp_tint_red_bg">#FBE4E4</color>
 
+    <!-- Practice-calendar heatmap ramp (empty -> most active) -->
+    <color name="pp_heat_0">#ECEAF4</color>
+    <color name="pp_heat_1">#D6D0F3</color>
+    <color name="pp_heat_2">#AEA3EA</color>
+    <color name="pp_heat_3">#7E71DE</color>
+    <color name="pp_heat_4">#5A4FCF</color>
+
     <!-- Training feedback (stronger, more evident) -->
     <color name="pp_feedback_green_bg">#BDE8CA</color>
     <color name="pp_feedback_green_fg">#2E9E57</color>
