@@ -62,6 +62,12 @@ class LineChartView @JvmOverloads constructor(
     private val fillPath = Path()
     private var values: FloatArray = FloatArray(0)
 
+    init {
+        if (isInEditMode) {
+            values = floatArrayOf(60f, 75f, 70f, 85f, 90f, 80f, 95f)
+        }
+    }
+
     fun setData(values: FloatArray) {
         this.values = values
         invalidate()

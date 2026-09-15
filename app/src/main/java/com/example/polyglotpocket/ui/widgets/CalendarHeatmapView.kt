@@ -48,6 +48,14 @@ class CalendarHeatmapView @JvmOverloads constructor(
     private var weeks = 0
     private var startMonday = 0L
 
+    init {
+        if (isInEditMode) {
+            weeks = 12
+            levels = IntArray(12 * 7) { (it * 37) % 5 }
+            startMonday = System.currentTimeMillis() - 12L * 7 * 86400000L
+        }
+    }
+
     fun setData(levels: IntArray, startMondayMillis: Long) {
         this.levels = levels
         this.weeks = if (levels.isEmpty()) 0 else levels.size / 7

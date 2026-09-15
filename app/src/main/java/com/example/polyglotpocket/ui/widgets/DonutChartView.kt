@@ -41,6 +41,13 @@ class DonutChartView @JvmOverloads constructor(
     private var correct = 0
     private var wrong = 0
 
+    init {
+        if (isInEditMode) {
+            correct = 42
+            wrong = 8
+        }
+    }
+
     private fun ringPaint(hex: String) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = stroke

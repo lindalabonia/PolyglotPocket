@@ -92,11 +92,6 @@
     <string name="stats_empty">No sessions yet.\nTrain a bit and your stats will show up here.</string>
     <string name="stats_error">Couldn\'t load your statistics.</string>
 
-    <!-- Backend test -->
-    <string name="apitest_title">Test backend</string>
-    <string name="apitest_load_languages">Load languages (/languages)</string>
-    <string name="apitest_target_hint">Language code (e.g. spa)</string>
-    <string name="apitest_load_card">Load a card (/cards)</string>
 
     <!-- Training -->
     <string name="training_title">Training</string>

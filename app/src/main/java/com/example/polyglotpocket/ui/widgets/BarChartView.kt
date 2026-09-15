@@ -40,6 +40,12 @@ class BarChartView @JvmOverloads constructor(
 
     private var values = IntArray(7)
 
+    init {
+        if (isInEditMode) {
+            values = intArrayOf(5, 12, 8, 15, 20, 10, 18)
+        }
+    }
+
     fun setData(values: IntArray) {
         this.values = if (values.size == 7) values else IntArray(7)
         invalidate()

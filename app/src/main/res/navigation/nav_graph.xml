@@ -38,11 +38,6 @@
             android:id="@+id/action_home_to_training"
             app:destination="@id/trainingFragment" />
 
-        <!-- Debug action for API testing -->
-        <action
-            android:id="@+id/action_home_to_apitest"
-            app:destination="@id/apiTestFragment" />
-
         <!-- Add word from photo (REQ. 6) -->
         <action
             android:id="@+id/action_home_to_photo"
@@ -55,12 +50,6 @@
         android:name="com.example.polyglotpocket.ui.training.TrainingFragment"
         android:label="@string/training_title"
         tools:layout="@layout/fragment_training" />
-
-    <fragment
-        android:id="@+id/apiTestFragment"
-        android:name="com.example.polyglotpocket.ui.apitest.ApiTestFragment"
-        android:label="@string/apitest_title"
-        tools:layout="@layout/fragment_api_test" />
 
     <!-- Photo flow (REQ. 6): capture/pick -> detect -> select -> translate + add -->
     <fragment
