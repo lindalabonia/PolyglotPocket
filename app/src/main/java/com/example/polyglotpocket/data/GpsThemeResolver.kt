@@ -17,7 +17,11 @@ import java.net.URL
 import java.util.Locale
 
 /**
- * Result of GPS location detection and geographical context resolution.
+ * REQ. 5 (Location & GPS) & REQ. 1 (External Cloud / REST Services):
+ * Result of GPS position detection and OpenStreetMap semantic reverse geocoding.
+ *
+ * Encapsulates the resolved human-readable place name, the mapped flashcard theme,
+ * user-friendly UI display label, and physical WGS84 geographic coordinates.
  */
 data class GpsContextResult(
     val placeName: String,
@@ -28,11 +32,29 @@ data class GpsContextResult(
 )
 
 /**
- * Resolves GPS position and maps the surrounding place/context
- * (via OpenStreetMap / Geocoder) to one of the app flashcard themes.
+ * REQ. 5 (Location & GPS) & REQ. 1 (External Cloud / REST Services):
+ * Geographic Position Engine and Context-Aware Theme Resolver.
+ *
+ * Architectural Workflow:
+ *  1. **High-Accuracy Positioning (Google Play Services)**:
+ *     Uses [com.google.android.gms.location.FusedLocationProviderClient] with [Priority.PRIORITY_HIGH_ACCURACY].
+ *     Unlike the legacy Android framework [LocationManager] (which requires manual switching between
+ *     `GPS_PROVIDER` and `NETWORK_PROVIDER` and suffers from slow indoor Time-To-First-Fix),
+ *     the Fused Location Provider fuses GPS satellites, Wi-Fi, cell towers, and Bluetooth sensors.
+ *     It also responds instantly to developer "Set Location" changes in the Android Studio Emulator.
+ *  2. **Defensive Fallback Architecture**:
+ *     If Google Play Services is unavailable or disabled, the engine falls back transparently
+ *     to the system [LocationManager] cached provider reading.
+ *  3. **External REST API Integration (OpenStreetMap Nominatim)**:
+ *     Dispatches an HTTP GET request to `https://nominatim.openstreetmap.org/reverse` on a
+ *     [Dispatchers.IO] coroutine thread. Parses JSON metadata (POI categories, OSM tags, amenity types).
+ *  4. **Context-Aware Semantic Mapping**:
+ *     Translates physical surrounding points of interest (e.g., restaurant, subway station, park)
+ *     into targeted vocabulary study themes (`food`, `places`, `plants`), enabling location-based flashcard training.
  */
 object GpsThemeResolver {
 
+    // Human-readable labels and emoji badges displayed on the confirmation dialog
     private val THEME_DISPLAY_NAMES = mapOf(
         "food" to "🍕 Food & Dining",
         "plants" to "🌳 Parks & Nature",
@@ -48,14 +70,21 @@ object GpsThemeResolver {
     )
 
     /**
-     * Actively requests the exact high-accuracy location from Google Play Services FusedLocationProvider.
-     * Instantly picks up emulator "Set Location" updates and real device movements.
+     * REQ. 5: Actively requests the exact high-accuracy location from Google Play Services.
+     *
+     * Why [FusedLocationProviderClient] over [LocationManager]:
+     *  - Intelligent Sensor Fusion: Combines GPS, Wi-Fi, and cellular trilateration.
+     *  - Immediate Emulator Sync: Accurately reflects location changes made via Android Studio's emulator controls.
+     *  - Power Efficiency: Offloads satellite acquisition power to OS-level shared caches.
+     *
+     * Runs in a non-blocking [Dispatchers.IO] coroutine thread via Kotlin Task extensions (`.await()`).
      */
     @SuppressLint("MissingPermission")
     suspend fun getCurrentLocation(context: Context): Location? = withContext(Dispatchers.IO) {
         try {
             val fusedClient = LocationServices.getFusedLocationProviderClient(context)
             val cts = CancellationTokenSource()
+            // Request an active, high-accuracy single location update
             val location = fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token).await()
             location ?: getLastKnownLocation(context)
         } catch (_: Exception) {
@@ -64,7 +93,9 @@ object GpsThemeResolver {
     }
 
     /**
-     * Fallback cached location using system LocationManager.
+     * Secondary fallback using native Android [LocationManager].
+     * Iterates through active providers (GPS, Network, Passive) and selects the reading
+     * with the lowest accuracy error margin.
      */
     @SuppressLint("MissingPermission")
     fun getLastKnownLocation(context: Context): Location? {
@@ -82,15 +113,22 @@ object GpsThemeResolver {
     }
 
     /**
-     * Resolves the nearby place context and maps it to an app flashcard theme
-     * by querying OpenStreetMap Nominatim with system Geocoder fallback.
+     * REQ. 1 & REQ. 5: Performs reverse geocoding by querying the OpenStreetMap Nominatim REST API.
+     *
+     * Communication Pipeline:
+     *  1. Constructs an HTTP GET request to `https://nominatim.openstreetmap.org/reverse`.
+     *  2. Passes WGS84 latitude, longitude, `zoom=18` (building-level precision), and `addressdetails=1`.
+     *  3. Sets a custom `User-Agent` header as required by OpenStreetMap foundation acceptable use policies.
+     *  4. Parses the JSON response to extract the place name, primary category, OSM type, and address tags.
+     *  5. If the network call fails or Nominatim returns an empty name, falls back to Android's local [Geocoder].
+     *  6. Evaluates [mapCategoryToTheme] to bind the geographic context to an app study category.
      */
     suspend fun resolvePlaceAndTheme(context: Context, latitude: Double, longitude: Double): GpsContextResult =
         withContext(Dispatchers.IO) {
             var placeName = "Current location"
             var detectedCategory = ""
 
-            // 1. Query OpenStreetMap Nominatim (Detailed reverse geocoding)
+            // 1. Query OpenStreetMap Nominatim (External Public REST API)
             try {
                 val osmUrl = "https://nominatim.openstreetmap.org/reverse?format=json&lat=$latitude&lon=$longitude&zoom=18&addressdetails=1"
                 val conn = (URL(osmUrl).openConnection() as HttpURLConnection).apply {
@@ -102,11 +140,14 @@ object GpsThemeResolver {
                 if (conn.responseCode in 200..299) {
                     val text = conn.inputStream.bufferedReader().use { it.readText() }
                     val json = JSONObject(text)
+
+                    // Extract specific POI name or fall back to the first segment of the display address
                     val name = json.optString("name").ifEmpty {
                         json.optString("display_name").split(",").firstOrNull().orEmpty()
                     }
                     if (name.isNotBlank()) placeName = name
 
+                    // Aggregate category, amenity/shop type, and address keys for semantic keyword matching
                     val category = json.optString("category")
                     val type = json.optString("type")
                     val addressObj = json.optJSONObject("address")
@@ -124,10 +165,10 @@ object GpsThemeResolver {
                 }
                 conn.disconnect()
             } catch (_: Exception) {
-                // Fallback on timeout or network absence
+                // Network timeout or offline state: fallback to offline system Geocoder
             }
 
-            // 2. If Nominatim did not return a specific name, fallback to Android Geocoder
+            // 2. Fallback to native Android Geocoder if Nominatim did not return a specific POI name
             if (placeName == "Current location") {
                 try {
                     val geocoder = Geocoder(context, Locale.getDefault())
@@ -140,7 +181,7 @@ object GpsThemeResolver {
                 } catch (_: Exception) {}
             }
 
-            // 3. Map detected category to app theme
+            // 3. Map detected category tags to an app flashcard theme
             val theme = mapCategoryToTheme(detectedCategory, placeName)
             val displayName = THEME_DISPLAY_NAMES[theme] ?: theme.replaceFirstChar { it.uppercase() }
 
@@ -154,7 +195,14 @@ object GpsThemeResolver {
         }
 
     /**
-     * Maps OSM tags or place name keywords to flashcard themes.
+     * Maps OpenStreetMap tags, amenity types, and place name tokens into app flashcard categories.
+     *
+     * Semantic Mapping Examples:
+     *  - "cafe, restaurant, pizza, bakery, bar" -> "food"
+     *  - "park, forest, garden, nature_reserve" -> "plants"
+     *  - "zoo, veterinary, aquarium, dog"       -> "animals"
+     *  - "supermarket, mall, store, shop"       -> "objects"
+     *  - "station, airport, museum, cathedral"  -> "places"
      */
     private fun mapCategoryToTheme(category: String, placeName: String): String {
         val text = "$category $placeName".lowercase()
@@ -171,7 +219,7 @@ object GpsThemeResolver {
             text.containsAny("theatre", "theater", "cinema", "art", "arts_centre", "theme_park", "amusement", "comedy", "yoga", "meditation", "spa", "viewpoint", "memorial", "monastery", "concert", "circus") -> "emotions"
             text.containsAny("clock", "sundial", "watchmaker", "planetarium", "observatory", "watch") -> "time"
             text.containsAny("station", "monument", "museum", "square", "church", "cathedral", "castle", "tower", "street", "avenue", "road", "plaza", "hall", "bridge", "airport", "harbor") -> "places"
-            else -> "places" // Default for outdoor / general street context
+            else -> "places" // Default for general street or outdoor surroundings
         }
     }
 

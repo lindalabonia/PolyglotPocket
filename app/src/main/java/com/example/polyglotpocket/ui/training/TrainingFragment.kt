@@ -28,8 +28,21 @@ import com.example.polyglotpocket.databinding.FragmentTrainingBinding
 import kotlin.math.abs
 
 /**
- * Flashcard training screen.
- * Observes the TrainingViewModel and updates the UI.
+ * REQ. 4 (Hardware Sensors) & REQ. 7, 9, 10 (Concurrency, REST API, Database):
+ * Interactive Flashcard Training Screen.
+ *
+ * Implements [SensorEventListener] to utilize the device's physical gyroscope sensor:
+ *  - **Why Gyroscope (TYPE_GYROSCOPE) instead of Accelerometer (TYPE_ACCELEROMETER)**:
+ *    An accelerometer detects linear acceleration and gravity (susceptible to walking shakes
+ *    and false positives). A gyroscope specifically measures angular rotation velocity (rad/s)
+ *    around the device's Y-axis (longitudinal axis). This isolates a deliberate, natural wrist
+ *    twist gesture ("flick") from accidental ambient movements.
+ *  - **Lifecycle-aware battery preservation**:
+ *    The hardware sensor is registered only in [onResume] and immediately unregistered in [onPause]
+ *    to avoid background battery drain.
+ *  - **Hands-Free Study UX**:
+ *    Once the user answers a flashcard and feedback is displayed, twisting the phone advances
+ *    to the next card without needing to tap the screen.
  */
 class TrainingFragment : Fragment(), SensorEventListener {
     private var _binding: FragmentTrainingBinding? = null
@@ -38,10 +51,17 @@ class TrainingFragment : Fragment(), SensorEventListener {
     // Initialize the ViewModel scoped to the Fragment lifecycle
     private val viewModel: TrainingViewModel by viewModels()
 
-    // Gyroscope management
+    // --- REQ. 4: Hardware Gyroscope Sensor Infrastructure ---
+    // Android system sensor manager service
     private var sensorManager: SensorManager? = null
+
+    // Reference to the physical gyroscope sensor (null if device/emulator lacks one)
     private var gyroscopeSensor: Sensor? = null
+
+    // Timestamp of the last gesture trigger to debounce and prevent double-skips
     private var lastRotationTriggerTime = 0L
+
+    // State gate: gyroscope advances cards ONLY when feedback (correct/wrong) is actively visible
     private var canUseGyroscopeToNext = false
 
     // Display name of the study language, for the "Translate to ..." hint.
@@ -274,7 +294,11 @@ class TrainingFragment : Fragment(), SensorEventListener {
         _binding = null
     }
 
-    // Register gyroscope sensor when screen becomes visible
+    /**
+     * REQ. 4: Registers the physical gyroscope sensor listener when the Fragment enters the foreground.
+     * Uses [SensorManager.SENSOR_DELAY_UI] (~60Hz rate), which provides optimal responsiveness
+     * for human wrist movements without stressing the CPU or draining battery unnecessarily.
+     */
     override fun onResume() {
         super.onResume()
         gyroscopeSensor?.let { sensor ->
@@ -282,32 +306,51 @@ class TrainingFragment : Fragment(), SensorEventListener {
         }
     }
 
-    // Unregister sensor when paused to preserve battery
+    /**
+     * REQ. 4: Unregisters the sensor listener immediately when the Fragment is paused.
+     * Crucial for battery efficiency: prevents the physical sensor from running when the app
+     * is in the background, screen is locked, or another Fragment is displayed.
+     */
     override fun onPause() {
         super.onPause()
         sensorManager?.unregisterListener(this)
     }
 
-    // Called on hardware gyroscope motion events
+    /**
+     * REQ. 4: Hardware Gyroscope Callback.
+     * Invoked by the Android OS whenever the device experiences rotational motion.
+     *
+     * Mathematical & Algorithmic Design:
+     *  1. **Sensor Isolation**: Verifies that the event originates from [Sensor.TYPE_GYROSCOPE].
+     *  2. **Coordinate Axis Mapping**: In Android, the Y-axis runs longitudinally up the center
+     *     of the device screen. Therefore, [SensorEvent.values][1] represents angular rotation
+     *     speed around the vertical Y-axis (a natural wrist twist to the left or right).
+     *  3. **State Machine Gate**: Evaluates [canUseGyroscopeToNext]. The gesture is ignored
+     *     while the user is reading or answering a flashcard, activating only when feedback is displayed.
+     *  4. **Threshold Triggering**: Uses `abs(rotationSpeedY) > 2.5f` rad/s (~143 deg/s). This
+     *     requires an intentional, snappy gesture, preventing accidental triggers from hand tremors.
+     *  5. **Debounce Filter (1000ms)**: After a valid wrist flick, human recoil creates a secondary
+     *     counter-rotation. The 1-second debounce window ensures exactly one card is advanced per flick.
+     */
     override fun onSensorChanged(event: SensorEvent?) {
         if (event?.sensor?.type != Sensor.TYPE_GYROSCOPE) return
 
-        // event.values[1] measures rotation velocity around the Y-axis (wrist twist)
+        // event.values[1] measures angular rotation velocity around the Y-axis (rad/s)
         val rotationSpeedY = event.values[1]
         val currentTime = System.currentTimeMillis()
 
-        // When feedback is visible and user twists the wrist (> 2.5 rad/s)
+        // Trigger only when feedback is visible and angular velocity exceeds the deliberate gesture threshold
         if (canUseGyroscopeToNext && abs(rotationSpeedY) > 2.5f) {
-            // Debounce for 1 second to prevent double triggers
+            // 1000ms debounce prevents double-advancing from the wrist recoil motion
             if (currentTime - lastRotationTriggerTime > 1000) {
                 lastRotationTriggerTime = currentTime
-                canUseGyroscopeToNext = false
+                canUseGyroscopeToNext = false // Lock until next card's feedback appears
                 viewModel.nextCard()
             }
         }
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        // Not needed for this use case
+        // Calibration changes do not impact discrete gesture threshold detection
     }
 }

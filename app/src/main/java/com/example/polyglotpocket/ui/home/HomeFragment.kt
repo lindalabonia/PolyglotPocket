@@ -168,6 +168,14 @@ class HomeFragment : Fragment() {
         }
     }
 
+    /**
+     * REQ. 5 (Location & GPS) & REQ. 1 (External Cloud & Map Services):
+     * Orchestrates the location-aware study flow:
+     *  1. Fetches coordinates via [GpsThemeResolver.getCurrentLocation] (Google Play Services FusedLocation).
+     *  2. Resolves POI name and semantic theme via OpenStreetMap Nominatim REST API.
+     *  3. Renders an interactive Leaflet.js map with a pinpoint marker in a sandboxed [WebView].
+     *  4. Transmits the resolved theme to [TrainingFragment] inside a navigation [Bundle].
+     */
     private fun startGpsFlow() {
         val lang = selectedLanguageCode ?: return
         Toast.makeText(requireContext(), R.string.gps_detecting, Toast.LENGTH_SHORT).show()
@@ -175,19 +183,21 @@ class HomeFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
+                // 1. Acquire current device coordinates (high-accuracy fused GPS/network)
                 val location = GpsThemeResolver.getCurrentLocation(requireContext())
-                // If location is not immediately available, use default coordinates
-                val lat = location?.latitude ?: 41.9028 // Rome by default
+                // Safe default fallback coordinates (Rome, Italy) if GPS fix is unavailable
+                val lat = location?.latitude ?: 41.9028
                 val lon = location?.longitude ?: 12.4964
 
+                // 2. Query OpenStreetMap Nominatim for POI details and categorize theme
                 val contextResult = GpsThemeResolver.resolvePlaceAndTheme(requireContext(), lat, lon)
 
-                // Inflate custom dialog layout with embedded OpenStreetMap WebView
+                // 3. Inflate preview dialog with embedded interactive map
                 val dialogBinding = com.example.polyglotpocket.databinding.DialogGpsPreviewBinding.inflate(layoutInflater)
                 dialogBinding.detectedPlaceText.text = contextResult.placeName
                 dialogBinding.detectedThemeText.text = contextResult.themeDisplayName
 
-                // Configure WebView for Leaflet.js rendering
+                // Configure WebView for Leaflet.js cartographic tile rendering
                 val webView = dialogBinding.mapWebView
                 webView.webViewClient = android.webkit.WebViewClient()
                 webView.webChromeClient = android.webkit.WebChromeClient()
@@ -199,6 +209,7 @@ class HomeFragment : Fragment() {
                     useWideViewPort = true
                 }
 
+                // Render vector tiles centered on the user's coordinates with a map pin marker
                 val html = """
                     <!DOCTYPE html>
                     <html>
@@ -225,6 +236,7 @@ class HomeFragment : Fragment() {
                 """.trimIndent()
                 webView.loadDataWithBaseURL("https://openstreetmap.org", html, "text/html", "UTF-8", null)
 
+                // 4. Confirmation dialog: upon confirmation, navigate to TrainingFragment with theme bundle
                 com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                     .setView(dialogBinding.root)
                     .setPositiveButton(R.string.gps_btn_start) { _, _ ->
