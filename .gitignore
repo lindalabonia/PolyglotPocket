@@ -17,3 +17,5 @@ local.properties
 # Python (backend)
 __pycache__/
 *.pyc
+
+/PROJECT_NOTES.md

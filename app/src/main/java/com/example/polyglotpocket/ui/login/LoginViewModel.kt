@@ -10,12 +10,10 @@ import com.example.polyglotpocket.data.BackendApi
 import com.example.polyglotpocket.data.TokenStore
 import kotlinx.coroutines.launch
 
-/**
- * Login/registration against the backend. The network calls run in
- * viewModelScope (coroutines, REQ. 7); on success the JWT is stored locally.
- */
+// Manages network calls and UI state for the Login screen
 class LoginViewModel(app: Application) : AndroidViewModel(app) {
 
+    // Represents all possible UI states for the login screen
     sealed interface State {
         data object Idle : State
         data object Loading : State
@@ -24,16 +22,17 @@ class LoginViewModel(app: Application) : AndroidViewModel(app) {
         data class Error(val message: String) : State
     }
 
-    // Start in Loading so the login form stays hidden until the auto-login check resolves.
+    // Start in Loading state to hide the form during the auto-login check
     private val _state = MutableLiveData<State>(State.Loading)
     val state: LiveData<State> = _state
 
+    // see run() function below
     fun login(username: String, password: String) = run(username, "", password, register = false)
     fun register(username: String, email: String, password: String) =
         run(username, email, password, register = true)
 
-    /** On startup: validate a stored token and, if good, go straight to Home;
-     *  otherwise reveal the login form. */
+    // on initial startup loginFragment calls tryAutoLogin
+    // Checks for a saved token on startup and attempts to skip the login screen
     fun tryAutoLogin() {
         viewModelScope.launch {
             val token = TokenStore.get(getApplication())
@@ -52,6 +51,7 @@ class LoginViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // Sends the Google credential and nonce to the backend for verification
     fun loginWithGoogle(idToken: String, rawNonce: String) {
         _state.value = State.Loading
         viewModelScope.launch {
@@ -65,17 +65,23 @@ class LoginViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // Shared logic for both manual login and registration
     private fun run(username: String, email: String, password: String, register: Boolean) {
         val u = username.trim()
         if (u.isBlank() || password.isBlank()) {
             _state.value = State.Error("Enter username and password")
             return
         }
+        
         _state.value = State.Loading
+
+        // new thread used not to block main thread with long request to server
         viewModelScope.launch {
             _state.value = try {
                 val result = if (register) BackendApi.register(u, email.trim(), password)
                              else BackendApi.login(u, password)
+                // server returns JWT token if password is correct
+                // it is saved by tokenstore, then state changes into 'success'
                 TokenStore.save(getApplication(), result.token)
                 State.Success(result.username)
             } catch (e: Exception) {
@@ -84,6 +90,7 @@ class LoginViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // Resets the state to Idle after showing an error message
     fun consumeState() {
         _state.value = State.Idle
     }
